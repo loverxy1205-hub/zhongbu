@@ -1,4 +1,5 @@
 export type EngineId = "tarot" | "iching" | "meihua" | "numerology" | "runes";
+export type SingleRevealEngine = "iching" | "meihua" | "numerology";
 export type Theme =
   "推进" | "准备" | "审慎" | "休整" | "沟通" | "边界" | "变化" | "等待";
 export type Category = "日常" | "学业" | "工作" | "人际" | "自我探索" | "其他";
@@ -145,6 +146,8 @@ export interface SavedReading {
   savedAt: string;
   /** Presentation only; absent means a legacy reading already revealed. */
   tarotRevealed?: number[];
+  runeRevealed?: number[];
+  engineRevealed?: SingleRevealEngine[];
   enhancements?: Partial<Record<EngineId, AiEnhancement>>;
 }
 export interface AiEnhancement {

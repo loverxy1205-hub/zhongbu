@@ -1,6 +1,6 @@
 import type { EngineId } from "../types";
 export const VERSIONS = {
-  app: "1.3.0",
+  app: "1.4.0",
   knowledge: "2026.09.29-1",
   rules: "1.1.0",
   templates: "1.1.0",

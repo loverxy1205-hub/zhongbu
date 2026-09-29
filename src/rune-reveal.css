@@ -1,0 +1,324 @@
+.result-card .rune-reveal-slot {
+  position: relative;
+}
+.result-card .rune-reveal-slot .position {
+  color: #bfd5c7;
+}
+.result-card .rune-reveal {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 166px;
+  aspect-ratio: 160 / 190;
+  margin: 0 auto 9px;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  color: #e7f7cf;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.result-card .rune-reveal:hover {
+  background: transparent;
+  border-color: transparent;
+}
+.result-card .rune-reveal:focus-visible {
+  outline: 2px solid #d9efb0;
+  outline-offset: 3px;
+}
+.result-card .rune-reveal[aria-disabled="true"] {
+  cursor: default;
+}
+.rune-sealed-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.rune-ground-shadow {
+  fill: #071c17;
+  opacity: 0.6;
+}
+.rune-rock-half {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  filter: drop-shadow(1px 2px 1px #0b231d88);
+}
+.rune-prybar {
+  transform-origin: 80px 87px;
+  filter: drop-shadow(2px 3px 1px #061914aa);
+}
+.is-covered:hover .rune-prybar {
+  transform: rotate(-7deg);
+}
+.is-covered .rune-prybar {
+  transition: transform 180ms ease-out;
+}
+.rune-core-glow,
+.rune-crack-light,
+.rune-rock-fragments {
+  opacity: 0;
+}
+.is-opening .rune-prybar {
+  animation: rune-pry 900ms cubic-bezier(0.32, 0.01, 0.22, 1) both;
+}
+.is-opening .rune-rock-left {
+  animation: rune-split-left 900ms ease-in both;
+}
+.is-opening .rune-rock-right {
+  animation: rune-split-right 900ms ease-in both;
+}
+.is-opening .rune-crack-light {
+  animation: rune-fracture 900ms ease-out both;
+}
+.is-opening .rune-core-glow {
+  animation: rune-core-light 900ms ease-out both;
+}
+.is-opening .rune-rock-fragments {
+  opacity: 1;
+}
+.rune-chip {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+.is-opening .rune-chip {
+  animation: rune-chip-fall 900ms ease-in both;
+}
+.rune-chip-1 {
+  --chip-x: -36px;
+  --chip-y: 62px;
+  --chip-turn: -130deg;
+}
+.rune-chip-2 {
+  --chip-x: 30px;
+  --chip-y: 50px;
+  --chip-turn: 160deg;
+}
+.rune-chip-3 {
+  --chip-x: -23px;
+  --chip-y: 30px;
+  --chip-turn: -90deg;
+}
+.rune-chip-4 {
+  --chip-x: 29px;
+  --chip-y: 88px;
+  --chip-turn: 120deg;
+}
+.is-revealed .rune-sealed-art {
+  opacity: 0.45;
+}
+.is-revealed .rune-rock-left {
+  transform: translate(-24px, 22px) rotate(-25deg) scale(0.74);
+}
+.is-revealed .rune-rock-right {
+  transform: translate(24px, 22px) rotate(25deg) scale(0.74);
+}
+.is-revealed .rune-prybar,
+.is-revealed .rune-crack-light {
+  opacity: 0;
+}
+.is-revealed .rune-core-glow {
+  opacity: 0.75;
+}
+.rune-relic {
+  position: absolute;
+  inset: 24% 22% 17%;
+  display: grid;
+  place-items: center;
+  border: 1px solid #b8d4a77d;
+  border-radius: 41% 35% 31% 28% / 24% 28% 23% 29%;
+  background:
+    radial-gradient(ellipse at 30% 5%, #708b67, transparent 64%),
+    linear-gradient(145deg, #455c43, #243e31 68%, #192f24);
+  box-shadow:
+    inset 2px 2px 4px #d4e6b631,
+    inset -3px -3px 5px #0b231879,
+    0 0 24px #b9ed964a,
+    0 8px 10px #06170f66;
+  transform: rotate(-4deg);
+}
+.rune-relic-1 {
+  transform: rotate(3deg);
+  border-radius: 30% 38% 23% 28% / 22% 34% 25% 24%;
+}
+.rune-relic-2 {
+  transform: rotate(-1deg);
+  border-radius: 36% 29% 36% 27% / 24% 27% 29% 22%;
+}
+.rune-relic .rune-engraving {
+  font-size: clamp(2.1rem, 4vw, 3.25rem);
+  color: #e3f7c5;
+  line-height: 1;
+}
+.rune-relic-ring {
+  position: absolute;
+  inset: 8px 6px;
+  border: 1px solid #c6ddb72c;
+  border-radius: inherit;
+}
+.result-card .rune-reveal-slot .rune-covered-label {
+  color: #deead5;
+  font-size: 0.85rem;
+}
+.result-card .rune-reveal-caption {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.7rem;
+}
+.result-card .rune-reveal-skip {
+  display: block;
+  margin: 10px auto 0;
+  padding: 5px 6px;
+  border: 1px solid #82a38b;
+  border-radius: 6px;
+  background: #17362c;
+  color: #e1eed9;
+  font-size: 0.64rem;
+  line-height: 1.5;
+  min-height: 36px;
+}
+.result-card .rune-reveal-skip:hover {
+  background: #2b4d3d;
+}
+.result-card .rune-reveal-progress {
+  margin: -5px 0 20px;
+  color: #bfd5c7;
+  font-size: 0.77rem;
+  text-align: center;
+}
+@keyframes rune-pry {
+  0% {
+    transform: rotate(-5deg);
+  }
+  24% {
+    transform: rotate(8deg);
+  }
+  42% {
+    transform: rotate(26deg) translate(0, 2px);
+  }
+  58% {
+    transform: rotate(34deg) translate(0, 3px);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(46deg) translate(20px, -12px);
+    opacity: 0;
+  }
+}
+@keyframes rune-split-left {
+  0%,
+  25% {
+    transform: translate(0, 0) rotate(0);
+  }
+  36% {
+    transform: translate(-1px, 0) rotate(-2deg);
+  }
+  45% {
+    transform: translate(0, 0) rotate(-1deg);
+  }
+  62% {
+    transform: translate(-9px, 3px) rotate(-12deg);
+  }
+  100% {
+    transform: translate(-24px, 22px) rotate(-25deg) scale(0.74);
+  }
+}
+@keyframes rune-split-right {
+  0%,
+  25% {
+    transform: translate(0, 0) rotate(0);
+  }
+  36% {
+    transform: translate(2px, 0) rotate(2deg);
+  }
+  45% {
+    transform: translate(1px, 0) rotate(1deg);
+  }
+  62% {
+    transform: translate(9px, 3px) rotate(12deg);
+  }
+  100% {
+    transform: translate(24px, 22px) rotate(25deg) scale(0.74);
+  }
+}
+@keyframes rune-fracture {
+  0%,
+  30% {
+    opacity: 0;
+  }
+  44% {
+    opacity: 1;
+  }
+  78%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes rune-core-light {
+  0%,
+  42% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  76% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+}
+@keyframes rune-chip-fall {
+  0%,
+  43% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0);
+  }
+  49% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--chip-x), var(--chip-y)) rotate(var(--chip-turn));
+  }
+}
+@media (max-width: 540px) {
+  .result-card .rune-row:has(.rune-reveal-slot) {
+    gap: 9px;
+    padding: 17px 10px;
+  }
+  .result-card .rune-reveal-slot .position {
+    font-size: 0.65rem;
+  }
+  .result-card .rune-reveal-slot strong {
+    font-size: 0.79rem;
+    overflow-wrap: anywhere;
+  }
+  .result-card .rune-reveal-caption {
+    font-size: 0.63rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rune-reveal *,
+  .rune-reveal:hover .rune-prybar {
+    animation: none !important;
+    transition: none !important;
+  }
+  .is-covered:hover .rune-prybar {
+    transform: none;
+  }
+}
+.motion-paused .rune-reveal *,
+.rune-motion-paused * {
+  animation: none !important;
+  transition: none !important;
+}
+.motion-paused .is-covered:hover .rune-prybar,
+.rune-motion-paused.is-covered:hover .rune-prybar {
+  transform: none;
+}

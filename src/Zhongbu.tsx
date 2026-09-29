@@ -32,6 +32,7 @@ import { EngineAccent } from "./components/EngineArt";
 import { AiPanel } from "./components/AiPanel";
 import { RitualTransition } from "./components/RitualTransition";
 import { useAi } from "./lib/useAi";
+import { advanceReveal, isEngineRevealed } from "./lib/reveal";
 import { KnowledgeLibrary } from "./components/KnowledgeLibrary";
 import { SummaryView } from "./components/SummaryView";
 import "./styles.css";
@@ -201,21 +202,11 @@ export default function Zhongbu() {
       key === "favorites",
     );
   }
-  function revealTarot(index: number) {
+  function reveal(engine: EngineId, index?: number) {
     const current = activeRef.current;
-    if (
-      !current ||
-      !Number.isInteger(index) ||
-      index < 0 ||
-      index > 2 ||
-      !current.tarotRevealed ||
-      current.tarotRevealed.includes(index)
-    )
-      return;
-    const next: SavedReading = {
-      ...current,
-      tarotRevealed: [...current.tarotRevealed, index],
-    };
+    if (!current || current.reading.readingId !== readingKey) return;
+    const next = advanceReveal(current, engine, index);
+    if (next === current) return;
     activate(next);
     if (
       historyRef.current.some(
@@ -237,6 +228,8 @@ export default function Zhongbu() {
       activate({
         reading,
         tarotRevealed: [],
+        runeRevealed: [],
+        engineRevealed: [],
         preferences: defaultPreferences(reading),
         savedAt: "",
       });
@@ -315,12 +308,11 @@ export default function Zhongbu() {
             Number(active.preferences.pinned.includes(a.engine)),
         )
     : [];
-  const tarotReady =
-    !active?.reading.results.some(
-      (result) => result.engine === "tarot" && result.status === "ok",
-    ) ||
-    !active.tarotRevealed ||
-    [0, 1, 2].every((index) => active.tarotRevealed!.includes(index));
+  const allRevealed =
+    !active ||
+    active.reading.results.every((result) =>
+      isEngineRevealed(active, result.engine),
+    );
   return (
     <div className={`app-shell ${motionPaused ? "motion-paused" : ""}`}>
       <a className="skip-link" href="#main">
@@ -543,14 +535,14 @@ export default function Zhongbu() {
                 </button>
                 <button
                   aria-pressed={view === "summary"}
-                  disabled={!tarotReady}
+                  disabled={!allRevealed}
                   onClick={() => setView("summary")}
                 >
                   规则汇总
                 </button>
                 <button
                   aria-pressed={view === "personal"}
-                  disabled={!tarotReady}
+                  disabled={!allRevealed}
                   onClick={() => setView("personal")}
                 >
                   我的偏好汇总
@@ -567,7 +559,7 @@ export default function Zhongbu() {
                 <details className="export-menu">
                   <summary>导出 ↓</summary>
                   <button
-                    disabled={!tarotReady}
+                    disabled={!allRevealed}
                     onClick={() =>
                       download(
                         `${active.reading.readingId}.json`,
@@ -579,7 +571,7 @@ export default function Zhongbu() {
                     JSON
                   </button>
                   <button
-                    disabled={!tarotReady}
+                    disabled={!allRevealed}
                     onClick={() =>
                       download(
                         `${active.reading.readingId}.md`,
@@ -594,9 +586,9 @@ export default function Zhongbu() {
                 </details>
               </div>
             </div>
-            {!tarotReady && (
-              <p className="tarot-unlock-note">
-                翻开三张塔罗牌后，即可查看它的解读、汇总与导出。
+            {!allRevealed && (
+              <p className="reveal-unlock-note">
+                点击各家的图案，亲手揭晓答案；全部揭晓后解锁汇总与导出。
               </p>
             )}
             {view === "all" ? (
@@ -634,7 +626,7 @@ export default function Zhongbu() {
                   {displayed.map((r) => (
                     <div
                       className={`result-stack result-stack-${r.engine}`}
-                      key={r.engine}
+                      key={`${readingKey}:${r.engine}`}
                     >
                       <ResultCard
                         result={r}
@@ -642,10 +634,15 @@ export default function Zhongbu() {
                         onToggle={toggle}
                         onCopy={() => copy(resultMarkdown(r))}
                         tarotRevealed={active.tarotRevealed}
-                        onRevealTarot={revealTarot}
+                        onRevealTarot={(index) => reveal("tarot", index)}
+                        runeRevealed={active.runeRevealed}
+                        onRevealRune={(index) => reveal("runes", index)}
+                        engineRevealed={isEngineRevealed(active, r.engine)}
+                        onRevealEngine={() => reveal(r.engine)}
+                        motionPaused={motionPaused}
                       />
                       {r.status === "ok" &&
-                        (r.engine !== "tarot" || tarotReady) && (
+                        isEngineRevealed(active, r.engine) && (
                           <AiPanel
                             engine={r.engine}
                             enhancement={active.enhancements?.[r.engine]}

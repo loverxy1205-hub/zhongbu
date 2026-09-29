@@ -173,6 +173,16 @@ export const savedSchema = z.object({
     .max(3)
     .refine((values) => new Set(values).size === values.length)
     .optional(),
+  runeRevealed: z
+    .array(z.number().int().min(0).max(2))
+    .max(3)
+    .refine((values) => new Set(values).size === values.length)
+    .optional(),
+  engineRevealed: z
+    .array(z.enum(["iching", "meihua", "numerology"]))
+    .max(3)
+    .refine((values) => new Set(values).size === values.length)
+    .optional(),
   enhancements: z
     .partialRecord(
       engine,

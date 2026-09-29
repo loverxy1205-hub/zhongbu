@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { TAROT } from "../../src/data/tarot";
 import type { SavedReading } from "../../src/types";
-import { revealTarot } from "./helpers";
+import { revealAll, revealTarot } from "./helpers";
 
 const current = (page: Page) =>
   page.evaluate(
@@ -47,7 +47,7 @@ test("three concealed cards reveal individually by keyboard before unlocking the
   await expect(page.getByTestId("ai-tarot")).toHaveCount(0);
   await expect(
     page.getByTestId("result-iching").locator(".result-reading"),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "规则汇总", exact: true }),
   ).toBeDisabled();
@@ -104,6 +104,11 @@ test("three concealed cards reveal individually by keyboard before unlocking the
   await expect(tarot.locator(".tarot-card-front")).toHaveCount(3);
   await expect(tarot.locator(".result-reading")).toBeVisible();
   await expect(page.getByTestId("ai-tarot")).toBeVisible();
+  await expect(page.getByTestId("ai-iching")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "规则汇总", exact: true }),
+  ).toBeDisabled();
+  await revealAll(page);
   await expect(
     page.getByRole("button", { name: "规则汇总", exact: true }),
   ).toBeEnabled();
@@ -203,6 +208,8 @@ test("older records without reveal state remain fully open without a redraw", as
   await page.evaluate(() => {
     const saved = JSON.parse(sessionStorage.getItem("zhongbu-active-v1")!);
     delete saved.tarotRevealed;
+    delete saved.engineRevealed;
+    delete saved.runeRevealed;
     sessionStorage.setItem("zhongbu-active-v1", JSON.stringify(saved));
   });
   await page.reload();

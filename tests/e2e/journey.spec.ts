@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import type { SavedReading } from "../../src/types";
+import { revealAll } from "./helpers";
 
 const current = (page: Page) =>
   page.evaluate(
@@ -131,6 +132,7 @@ test("a global pause stops continuous motion without changing the reading", asyn
   await page.getByRole("button", { name: "开启这次探索" }).click();
   await expect(page.getByTestId("result-tarot")).toBeVisible({ timeout: 1000 });
   const original = (await current(page)).reading;
+  await revealAll(page);
   await expect
     .poll(() =>
       page.evaluate(
@@ -167,6 +169,7 @@ test("reduced motion starts paused and bypasses the ritual wait", async ({
   await page.getByRole("button", { name: "开启这次探索" }).click();
   await expect(page.getByTestId("result-tarot")).toBeVisible({ timeout: 1000 });
   await expect(page.getByTestId("ritual-transition")).toHaveCount(0);
+  await revealAll(page);
   await expect
     .poll(() =>
       page.evaluate(

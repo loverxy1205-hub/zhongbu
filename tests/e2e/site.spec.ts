@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import type { SavedReading } from "../../src/types";
-import { revealTarot } from "./helpers";
+import { revealAll } from "./helpers";
 const current = (page: Page) =>
   page.evaluate(
     () =>
@@ -13,7 +13,7 @@ async function start(page: Page, birthday = true) {
   if (birthday) await page.getByLabel("出生日期").fill("1998-06-15");
   await page.getByRole("button", { name: "开启这次探索" }).click();
   await expect(page.getByTestId("result-tarot")).toBeVisible();
-  await revealTarot(page);
+  await revealAll(page);
 }
 test("all five engines work, no remote runtime requests or keys", async ({
   page,
@@ -51,6 +51,11 @@ test("birthday omitted retains an unavailable card and four complete engines", a
       (r: { status: string }) => r.status === "ok",
     ),
   ).toHaveLength(4);
+  await expect(page.getByTestId("reveal-numerology")).toHaveCount(0);
+  await expect(page.getByTestId("ai-numerology")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "规则汇总", exact: true }),
+  ).toBeEnabled();
 });
 test("preferences, saved history and refresh never redraw; delete and clear work", async ({
   page,
@@ -146,7 +151,7 @@ test("offline calculation, source library and offline refresh after caching", as
   await page.getByLabel("出生日期").fill("1998-06-15");
   await page.getByRole("button", { name: "开启这次探索" }).click();
   await expect(page.locator(".result-card")).toHaveCount(5);
-  await revealTarot(page);
+  await revealAll(page);
   const first = (await current(page)).reading;
   expect(
     first.results.every((r: { status: string }) => r.status === "ok"),

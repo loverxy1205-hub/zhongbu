@@ -1,0 +1,321 @@
+/* Each scene is still until its own reveal button is pressed. */
+.engine-reveal {
+  --reveal-ink: #986a36;
+  --reveal-rule: #d5b789;
+  --reveal-surface: #fff7e5;
+  position: relative;
+  margin: 24px 0 12px;
+  text-align: center;
+  color: var(--reveal-ink);
+}
+.engine-reveal.reveal-meihua {
+  --reveal-ink: #a35370;
+  --reveal-rule: #dfb8c7;
+  --reveal-surface: #fff0f2;
+}
+.engine-reveal.reveal-numerology {
+  --reveal-ink: #23798b;
+  --reveal-rule: #9eced2;
+  --reveal-surface: #e9faf7;
+}
+.engine-reveal .engine-reveal-trigger {
+  display: block;
+  position: relative;
+  width: 100%;
+  padding: 21px 12px 20px;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--reveal-rule);
+  border-radius: 12px 32px 12px 32px;
+  color: var(--reveal-ink);
+  background:
+    radial-gradient(ellipse at 50% 20%, #ffffffc9, transparent 74%),
+    var(--reveal-surface);
+  box-shadow:
+    inset 0 0 0 5px #ffffff75,
+    0 6px 22px #634e2010;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.engine-reveal.reveal-meihua .engine-reveal-trigger {
+  border-radius: 50% 50% 13px 13px / 13% 13% 13px 13px;
+}
+.engine-reveal.reveal-numerology .engine-reveal-trigger {
+  border-radius: 22px;
+  background:
+    linear-gradient(#26809507 1px, transparent 1px) 0 0 / 22px 22px,
+    linear-gradient(90deg, #26809507 1px, transparent 1px) 0 0 / 22px 22px,
+    radial-gradient(ellipse at 50% 10%, #ffffffdf, transparent 75%),
+    var(--reveal-surface);
+}
+.engine-reveal .engine-reveal-trigger:hover:not(:disabled) {
+  border-color: var(--reveal-ink);
+  box-shadow:
+    inset 0 0 0 5px #ffffff9c,
+    0 8px 25px #634e2020;
+  background-color: var(--reveal-surface);
+}
+.engine-reveal .engine-reveal-trigger:focus-visible,
+.engine-reveal .engine-reveal-skip:focus-visible {
+  outline: 3px solid var(--reveal-ink);
+  outline-offset: 4px;
+}
+.engine-reveal .engine-reveal-trigger:disabled {
+  opacity: 1;
+  color: var(--reveal-ink);
+  cursor: wait;
+}
+.reveal-invitation {
+  display: block;
+  font-family: Georgia, "Songti SC", SimSun, serif;
+  font-size: 0.94rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+}
+.reveal-artwork {
+  display: block;
+  position: relative;
+  width: min(100%, 330px);
+  margin: 7px auto 4px;
+  aspect-ratio: 320 / 205;
+}
+.reveal-artwork > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.reveal-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  min-height: 44px;
+  padding: 7px 20px;
+  border: 1px solid var(--reveal-rule);
+  border-radius: 26px;
+  color: var(--reveal-ink);
+  background: #ffffffb3;
+  font-size: 0.86rem;
+  letter-spacing: 0.12em;
+}
+.reveal-action > span {
+  font-size: 1.05rem;
+  font-family: sans-serif;
+}
+.engine-reveal .reveal-hint {
+  min-height: 24px;
+  margin: 12px 0 0;
+  color: var(--engine-muted, var(--reveal-ink));
+  font-size: 0.75rem;
+  line-height: 1.75;
+}
+.engine-reveal .engine-reveal-skip {
+  min-height: 44px;
+  margin: 4px auto 0;
+  padding: 7px 15px;
+  border: 1px solid transparent;
+  border-radius: 24px;
+  color: var(--reveal-ink);
+  background: transparent;
+  font-size: 0.73rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.engine-reveal .engine-reveal-skip:hover {
+  border-color: var(--reveal-rule);
+  background: var(--reveal-surface);
+}
+.reveal-halo {
+  fill: #fff3d857;
+  stroke: #c2995680;
+}
+.reveal-sun {
+  fill: #b7523b;
+  fill-opacity: 0.57;
+  stroke: none;
+}
+.reveal-mountain-far {
+  fill: #7f947b;
+  opacity: 0.15;
+}
+.reveal-mountain-near {
+  fill: #677a68;
+  opacity: 0.14;
+}
+.reveal-coins {
+  --coin-fill: #e4c27c;
+  --coin-hole: #fff5db;
+  stroke: #956c37;
+  stroke-width: 1.3;
+}
+.reveal-coins .coin-face {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.is-playing .reveal-coins .coin-face {
+  animation: reveal-copper-turn 880ms cubic-bezier(0.18, 0.64, 0.3, 1) both;
+}
+.is-playing .reveal-coins > g:nth-child(2) .coin-face {
+  animation-delay: 80ms;
+}
+.is-playing .reveal-coins > g:nth-child(3) .coin-face {
+  animation-delay: 160ms;
+}
+.reveal-plum-moon {
+  fill: #f1ccd5;
+  fill-opacity: 0.43;
+  stroke: none;
+}
+.reveal-plum-branch {
+  stroke: #87616b;
+  opacity: 0.65;
+}
+.reveal-meihua .plum-blossom {
+  fill: #e898b1;
+  stroke: #b96684;
+  stroke-width: 0.65;
+}
+.reveal-meihua .plum-heart {
+  fill: #fff1bb;
+  stroke: none;
+}
+.reveal-meihua .plum-stamen {
+  stroke: #9d4a68;
+  stroke-width: 0.6;
+}
+.reveal-loose-petal {
+  fill: #df89a5;
+  stroke: #c2718d;
+  stroke-width: 0.6;
+}
+.is-playing .reveal-picked-blossom {
+  animation: reveal-blossom-fall 1050ms ease-in forwards;
+}
+.is-playing .reveal-loose-petal {
+  animation: reveal-petal-fall 980ms ease-in forwards;
+}
+.is-playing .reveal-loose-petal-1 {
+  animation-delay: 70ms;
+}
+.is-playing .reveal-loose-petal-2 {
+  animation-delay: 30ms;
+}
+.is-playing .reveal-loose-petal-3 {
+  animation-delay: 100ms;
+}
+.reveal-number-halo {
+  fill: #d1ede577;
+  stroke: #49979f80;
+}
+.reveal-number-orbits {
+  transform-origin: 160px 102px;
+}
+.is-playing .reveal-number-orbits {
+  animation: reveal-number-turn 1100ms ease-in-out forwards;
+}
+.reveal-number-window {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.15em;
+  height: 1em;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  color: #1b7483;
+  text-align: center;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3.6rem, 6vw, 5rem);
+  font-weight: 400;
+  line-height: 1;
+  text-shadow: 1px 2px 0 #ffffffbd;
+}
+.reveal-dormant-digit,
+.reveal-digit-strip,
+.reveal-digit-strip > span {
+  display: block;
+  width: 100%;
+}
+.reveal-digit-strip > span {
+  height: 1em;
+  line-height: 1;
+}
+.is-playing .reveal-digit-strip {
+  animation: reveal-digits 990ms steps(8, end) both;
+}
+@keyframes reveal-copper-turn {
+  0% {
+    transform: translateY(0) rotateY(0deg);
+  }
+  40% {
+    transform: translateY(-18px) rotateY(330deg) rotate(-6deg);
+  }
+  80% {
+    transform: translateY(-7px) rotateY(630deg) rotate(4deg);
+  }
+  100% {
+    transform: translateY(0) rotateY(720deg);
+  }
+}
+@keyframes reveal-blossom-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  30% {
+    transform: translate(-6px, 7px) rotate(-15deg);
+  }
+  100% {
+    transform: translate(-34px, 127px) rotate(65deg);
+  }
+}
+@keyframes reveal-petal-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  40% {
+    transform: translate(-8px, 17px) rotate(35deg);
+  }
+  100% {
+    transform: translate(-35px, 95px) rotate(155deg);
+  }
+}
+@keyframes reveal-number-turn {
+  to {
+    transform: rotate(220deg);
+  }
+}
+@keyframes reveal-digits {
+  to {
+    transform: translateY(-8em);
+  }
+}
+.motion-paused .engine-reveal *,
+.motion-paused .engine-reveal *::before,
+.motion-paused .engine-reveal *::after {
+  animation: none;
+  transition: none;
+}
+@media (max-width: 440px) {
+  .engine-reveal .engine-reveal-trigger {
+    padding: 19px 9px 16px;
+  }
+  .reveal-invitation {
+    font-size: 0.86rem;
+    letter-spacing: 0.08em;
+  }
+  .reveal-artwork {
+    width: min(100%, 290px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .engine-reveal *,
+  .engine-reveal *::before,
+  .engine-reveal *::after {
+    animation: none;
+    transition: none;
+  }
+}

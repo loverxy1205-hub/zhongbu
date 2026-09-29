@@ -16,6 +16,8 @@ import {
   TarotArt,
   TarotOrbit,
 } from "./EngineArt";
+import { EngineReveal } from "./EngineReveal";
+import { RuneReveal } from "./RuneReveal";
 export function HexFigure({
   code,
   moving = [],
@@ -57,6 +59,11 @@ type TarotRevealProps = {
   tarotRevealed?: readonly number[];
   onRevealTarot?: (index: number) => void;
 };
+type RuneRevealProps = {
+  runeRevealed?: readonly number[];
+  onRevealRune?: (index: number) => void;
+  motionPaused?: boolean;
+};
 
 function TarotBack() {
   return (
@@ -97,7 +104,10 @@ export function RawVisual({
   raw,
   tarotRevealed,
   onRevealTarot,
-}: { raw: Raw } & TarotRevealProps) {
+  runeRevealed,
+  onRevealRune,
+  motionPaused,
+}: { raw: Raw } & TarotRevealProps & RuneRevealProps) {
   if (raw.kind === "tarot")
     return (
       <div className="triptych tarot-spread">
@@ -170,6 +180,19 @@ export function RawVisual({
     return (
       <div className="triptych rune-row">
         {raw.runes.map((d, i) => {
+          if (runeRevealed !== undefined || onRevealRune)
+            return (
+              <RuneReveal
+                key={d.id}
+                draw={d}
+                index={i}
+                revealed={
+                  runeRevealed === undefined || runeRevealed.includes(i)
+                }
+                onReveal={onRevealRune}
+                motionPaused={motionPaused}
+              />
+            );
           const r = RUNES.find((r) => r.id === d.id)!;
           return (
             <div key={d.id} className="symbol-slot">
@@ -241,21 +264,45 @@ export function ResultCard({
   onCopy,
   tarotRevealed,
   onRevealTarot,
+  runeRevealed,
+  onRevealRune,
+  engineRevealed = true,
+  onRevealEngine,
+  motionPaused = false,
 }: {
   result: EngineResult;
   prefs: Preferences;
   onToggle: (key: "pinned" | "liked" | "favorites", id: EngineId) => void;
   onCopy: () => void;
-} & TarotRevealProps) {
+  engineRevealed?: boolean;
+  onRevealEngine?: () => void;
+} & TarotRevealProps &
+  RuneRevealProps) {
   const meta = ENGINES[result.engine],
     i = result.interpretation;
   const tarotRaw = result.raw?.kind === "tarot" ? result.raw : undefined;
-  const revealedCount =
+  const runeRaw = result.raw?.kind === "runes" ? result.raw : undefined;
+  const tarotRevealedCount =
     tarotRaw?.cards.filter(
       (_, index) =>
         tarotRevealed === undefined || tarotRevealed.includes(index),
     ).length ?? 0;
-  const canRead = !tarotRaw || revealedCount === tarotRaw.cards.length;
+  const runeRevealedCount =
+    runeRaw?.runes.filter(
+      (_, index) => runeRevealed === undefined || runeRevealed.includes(index),
+    ).length ?? 0;
+  const coveredEngine =
+    !engineRevealed &&
+    (result.engine === "iching" ||
+      result.engine === "meihua" ||
+      result.engine === "numerology")
+      ? result.engine
+      : undefined;
+  const canRead =
+    result.status === "ok" &&
+    !coveredEngine &&
+    (!tarotRaw || tarotRevealedCount === tarotRaw.cards.length) &&
+    (!runeRaw || runeRevealedCount === runeRaw.runes.length);
   return (
     <article
       className={`result-card engine-${result.engine}`}
@@ -283,16 +330,34 @@ export function ResultCard({
         result.raw &&
         i && (
           <>
-            <RawVisual
-              raw={result.raw}
-              tarotRevealed={tarotRevealed}
-              onRevealTarot={onRevealTarot}
-            />
+            {coveredEngine ? (
+              <EngineReveal
+                engine={coveredEngine}
+                onReveal={() => onRevealEngine?.()}
+                motionPaused={motionPaused}
+              />
+            ) : (
+              <RawVisual
+                raw={result.raw}
+                tarotRevealed={tarotRevealed}
+                onRevealTarot={onRevealTarot}
+                runeRevealed={runeRevealed}
+                onRevealRune={onRevealRune}
+                motionPaused={motionPaused}
+              />
+            )}
             {tarotRaw && (
               <p className="tarot-reveal-progress" role="status">
                 {canRead
                   ? "三张牌已展开，读一读它们带来的视角。"
-                  : `已翻开 ${revealedCount} / ${tarotRaw.cards.length} 张 · 翻开全部后呈现解读`}
+                  : `已翻开 ${tarotRevealedCount} / ${tarotRaw.cards.length} 张 · 翻开全部后呈现解读`}
+              </p>
+            )}
+            {runeRaw && (
+              <p className="rune-reveal-progress" role="status">
+                {canRead
+                  ? "三枚符石已显现，读一读它们带来的视角。"
+                  : `已撬开 ${runeRevealedCount} / ${runeRaw.runes.length} 枚 · 全部揭晓后呈现解读`}
               </p>
             )}
             {canRead && (

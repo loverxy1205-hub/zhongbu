@@ -2,7 +2,7 @@ import { test, expect, devices } from "@playwright/test";
 import type { Page, Route } from "@playwright/test";
 import type { AiRequest, AiResponse } from "../../shared/ai-contract";
 import type { SavedReading } from "../../src/types";
-import { revealTarot } from "./helpers";
+import { revealAll } from "./helpers";
 
 const endpoint = "http://127.0.0.1:5174/test-ai/interpret";
 const question = "我想先不联系对方，怎样理解自己的边界？";
@@ -39,7 +39,7 @@ async function start(
   await page.getByLabel(/预设场景/).selectOption("沟通联系");
   await page.getByLabel("出生日期").fill("1998-06-15");
   await page.getByRole("button", { name: "开启这次探索" }).click();
-  await revealTarot(page);
+  await revealAll(page);
   await expect(page.getByTestId("ai-tarot")).toBeVisible();
 }
 async function downloadText(page: Page, format: "JSON" | "Markdown") {
