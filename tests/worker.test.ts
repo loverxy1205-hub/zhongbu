@@ -122,7 +122,7 @@ describe("single-engine interpretation proxy", () => {
     );
     const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
     expect(JSON.parse(payload.messages[1].content).context).toEqual(context);
-    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.30-8");
+    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.30-9");
     for (const requirement of [
       "仅写两个小段",
       "第一段以「解析：」开头，第二段以「建议：」开头",
@@ -149,6 +149,14 @@ describe("single-engine interpretation proxy", () => {
       "符号不能证实真伪",
       "不能让随机符号推翻现实证据",
       "不能把「不去」变成「去」",
+      "不预设勤奋、出勤、服从或持续推进比暂停、拒绝、休息更正确",
+      "不能先反转成必须参加，再把休整牌意挪到参加之后",
+      "不为迎合用户一律答可以",
+      "未明示长期范围时按 context.targetDate 当日理解",
+      "用户明示长期时也不得偷缩为一天",
+      "不替学校、单位或他人授予许可",
+      "不编造出勤规则、处分、请假条件或用户生病",
+      "普通教育／出勤安排本身不自动属于医疗、法律等高风险问题",
       "不编造其性格、经历、关系、资源或未来事实",
       "不得提供医疗、法律、金融投资、政治或投票行动推荐",
     ])

@@ -341,6 +341,35 @@ describe("single-engine AI request privacy", () => {
     expect(JSON.stringify(request)).not.toContain("PRIVATE_DORMANT_OPTION");
   });
 
+  it.each(["我明天可以翘课嘛？", "我可以不去上学吗？"])(
+    "preserves the original exploration question and target day without inferring an attendance action: %s",
+    (question) => {
+      const source = reading({
+        question,
+        mode: "explore",
+        scene: "无预设",
+        action: "",
+        options: undefined,
+        targetDate: "2026-10-01",
+      });
+      const request = buildAiRequest(source, "tarot");
+      expect(request.context).toEqual({
+        question,
+        mode: "explore",
+        scene: "无预设",
+        action: "",
+        targetDate: "2026-10-01",
+      });
+      const reworded = structuredClone(source);
+      reworded.input.question = "关于这一天的普通安排";
+      expect(buildAiRequest(reworded, "tarot").evidence).toEqual(
+        request.evidence,
+      );
+      expect(request.context).not.toHaveProperty("options");
+      expect(JSON.stringify(request)).not.toContain(input.birthday);
+    },
+  );
+
   it("rejects missing or unavailable engine results", () => {
     const source = structuredClone(reading());
     source.results = source.results.filter((r) => r.engine !== "tarot");

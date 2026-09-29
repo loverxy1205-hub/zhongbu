@@ -15,11 +15,43 @@ const current = (page: Page) =>
     () =>
       JSON.parse(sessionStorage.getItem("zhongbu-active-v1")!) as SavedReading,
   );
-async function start(page: Page) {
-  await page.emulateMedia({ reducedMotion: "reduce" });
+async function start(
+  page: Page,
+  reducedMotion: "reduce" | "no-preference" = "reduce",
+) {
+  await page.emulateMedia({ reducedMotion });
   await page.goto("/");
   await page.getByRole("button", { name: "开启这次探索" }).click();
   await expect(page.getByTestId("tarot-deck")).toBeVisible();
+}
+
+async function expectChosenArt(
+  page: Page,
+  order: number,
+  draw: { id: string; reversed: boolean },
+) {
+  const chosen = page.getByTestId(`tarot-chosen-${order}`);
+  const face = chosen.locator(".deck-preview-face");
+  const art = face.locator(".tarot-art");
+  await expect(face).toBeVisible();
+  await expect(art).toBeVisible();
+  await expect(art).toHaveAttribute("data-decoration-id", draw.id);
+  await expect(chosen.locator(".deck-preview-back")).toHaveCount(0);
+  expect(
+    await face.evaluate((element) => element.classList.contains("is-reversed")),
+  ).toBe(draw.reversed);
+  const rotation = await art.evaluate((element) => {
+    const transform = getComputedStyle(element).transform;
+    return transform === "none" ? 1 : new DOMMatrix(transform).m11;
+  });
+  expect(rotation).toBeCloseTo(draw.reversed ? -1 : 1);
+  expect(
+    await art
+      .locator(":scope > text")
+      .evaluateAll((labels) =>
+        labels.every((label) => getComputedStyle(label).display === "none"),
+      ),
+  ).toBe(true);
 }
 
 test("78 real slots map keyboard choices to three distinct frozen cards and unlock tarot only after the third", async ({
@@ -35,6 +67,25 @@ test("78 real slots map keyboard choices to three distinct frozen cards and unlo
   expect(before.tarotDeck).toHaveLength(78);
   expect(new Set(before.tarotDeck!.map((card) => card.id)).size).toBe(78);
   await expect(page.locator('[data-testid^="tarot-pick-"]')).toHaveCount(78);
+  for (let order = 0; order < 3; order++) {
+    const chosen = page.getByTestId(`tarot-chosen-${order}`);
+    await expect(chosen).toHaveAttribute("data-revealed", "false");
+    await expect(chosen.locator(".deck-preview-back > svg")).toBeVisible();
+    await expect(
+      chosen.locator(".tarot-art, [data-decoration-id]"),
+    ).toHaveCount(0);
+    await expect(chosen.getByText("尚未选牌", { exact: true })).toBeVisible();
+  }
+  expect(
+    await page
+      .getByTestId("tarot-galaxy-flow")
+      .evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((a) => a.playState === "running").length,
+      ),
+  ).toBe(0);
   await expect(
     tarot.locator(".deck-inplace-face, .deck-picked-mark"),
   ).toHaveCount(0);
@@ -72,6 +123,9 @@ test("78 real slots map keyboard choices to three distinct frozen cards and unlo
       await expect(
         button.locator(".deck-inplace-art .tarot-art"),
       ).toBeVisible();
+      await expect(
+        button.locator(".deck-inplace-art .tarot-art"),
+      ).toHaveAttribute("data-decoration-id", draw.id);
       expect(
         await button
           .locator(".deck-inplace-art")
@@ -88,6 +142,7 @@ test("78 real slots map keyboard choices to three distinct frozen cards and unlo
       await expect(
         chosen.getByText(draw.reversed ? "逆位" : "正位", { exact: true }),
       ).toBeVisible();
+      await expectChosenArt(page, order, draw);
       // Dispatching a second event on a selected slot cannot select it twice.
       await button.dispatchEvent("click");
       expect((await current(page)).tarotPicked).toEqual(
@@ -112,7 +167,21 @@ test("78 real slots map keyboard choices to three distinct frozen cards and unlo
     before.reading.results.filter((r) => r.engine !== "tarot"),
   );
   expect(selected.tarotDeck).toEqual(before.tarotDeck);
+  await expect(page.getByTestId("tarot-deck")).toHaveCount(0);
   await expect(tarot.locator(".tarot-card-front")).toHaveCount(3);
+  for (const [order, slot] of slots.entries()) {
+    const draw = before.tarotDeck![slot];
+    const card = page.getByTestId(`tarot-slot-${order}`);
+    await expect(card.locator(".tarot-art")).toHaveAttribute(
+      "data-decoration-id",
+      draw.id,
+    );
+    expect(
+      await card
+        .locator(".tarot-card-front")
+        .evaluate((element) => element.classList.contains("reversed")),
+    ).toBe(draw.reversed);
+  }
   await expect(tarot.locator(".result-reading")).toBeVisible();
   await expect(page.getByTestId("ai-tarot")).toBeVisible();
   await expect(
@@ -160,7 +229,7 @@ test("partial slot choices survive sorting, refresh and saved history before fin
   expect((await current(page)).tarotPicked).toEqual([69, 2]);
   expect((await current(page)).tarotDeck).toEqual(original.tarotDeck);
   expect((await current(page)).reading).toEqual(original.reading);
-  for (const slot of [69, 2]) {
+  for (const [order, slot] of [69, 2].entries()) {
     const draw = original.tarotDeck![slot];
     const name = TAROT.find((card) => card.id === draw.id)!.name;
     const face = page.getByTestId(`tarot-pick-${slot}`);
@@ -169,7 +238,11 @@ test("partial slot choices survive sorting, refresh and saved history before fin
     await expect(face.locator(".deck-face-orientation")).toHaveText(
       draw.reversed ? "逆位" : "正位",
     );
+    await expectChosenArt(page, order, draw);
   }
+  await expect(
+    page.getByTestId("tarot-chosen-2").locator(".deck-preview-back > svg"),
+  ).toBeVisible();
   await expect(page.locator(".deck-picked-mark")).toHaveCount(0);
   await page.getByRole("button", { name: /本机记录/ }).click();
   await page.getByRole("button", { name: "打开原记录" }).click();
@@ -198,6 +271,149 @@ test("partial slot choices survive sorting, refresh and saved history before fin
   expect((await current(page)).reading.readingId).not.toBe(
     original.reading.readingId,
   );
+});
+
+test("galaxy motion leaves all real slots stable and clickable, stops on pause or reduced motion, and consumes no entropy", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    let word = 0;
+    Object.defineProperty(crypto, "getRandomValues", {
+      value: (buffer: Uint32Array<ArrayBuffer>) => {
+        document.documentElement.dataset.randomCalls = String(
+          Number(document.documentElement.dataset.randomCalls || "0") + 1,
+        );
+        for (let index = 0; index < buffer.length; index++)
+          buffer[index] = word++ % 2;
+        return buffer;
+      },
+    });
+  });
+  await start(page, "no-preference");
+  const original = await current(page);
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-random-calls",
+    "181",
+  );
+  const flow = page.getByTestId("tarot-galaxy-flow");
+  await expect(flow).toHaveAttribute("aria-hidden", "true");
+  expect(
+    await flow.evaluate((element) =>
+      [element, ...element.querySelectorAll("*")].every(
+        (part) => getComputedStyle(part).pointerEvents === "none",
+      ),
+    ),
+  ).toBe(true);
+  await page.evaluate(async () => {
+    // Let the result card's one-time entrance settle before measuring the pool.
+    await Promise.allSettled(
+      document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.effect?.getComputedTiming().iterations !== Infinity,
+        )
+        .map((animation) => animation.finished),
+    );
+  });
+  const first = page.getByTestId("tarot-pick-0");
+  await first.scrollIntoViewIfNeeded();
+  await first.hover();
+  const samples = await page
+    .getByTestId("tarot-deck-pool")
+    .evaluate(async (pool) => {
+      const animationLayer = document.querySelector(
+        '[data-testid="tarot-galaxy-flow"]',
+      )!;
+      const animations = animationLayer.getAnimations({ subtree: true });
+      const rectangles = () =>
+        Array.from(pool.querySelectorAll("button"), (button) => {
+          const { x, y, width, height } = button.getBoundingClientRect();
+          return { x, y, width, height };
+        });
+      const before = rectangles();
+      const timesBefore = animations.map((animation) =>
+        Number(animation.currentTime),
+      );
+      for (let frame = 0; frame < 8; frame++)
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => resolve()),
+        );
+      const after = rectangles();
+      const { x, y, width, height } = after[0];
+      return {
+        before,
+        after,
+        timesBefore,
+        timesAfter: animations.map((animation) =>
+          Number(animation.currentTime),
+        ),
+        running: animations.every(
+          (animation) => animation.playState === "running",
+        ),
+        hit: document
+          .elementFromPoint(x + width / 2, y + height / 2)
+          ?.closest("button")
+          ?.getAttribute("data-testid"),
+      };
+    });
+  expect(samples.before).toHaveLength(78);
+  expect(samples.timesBefore.length).toBeGreaterThan(0);
+  expect(samples.running).toBe(true);
+  for (const [index, time] of samples.timesAfter.entries())
+    expect(time).toBeGreaterThan(samples.timesBefore[index]);
+  for (const [index, rectangle] of samples.after.entries())
+    for (const dimension of ["x", "y", "width", "height"] as const)
+      expect(rectangle[dimension]).toBeCloseTo(
+        samples.before[index][dimension],
+        1,
+      );
+  expect(samples.hit).toBe("tarot-pick-0");
+  await first.click();
+  await expectChosenArt(page, 0, original.tarotDeck![0]);
+  expect((await current(page)).tarotPicked).toEqual([0]);
+  expect((await current(page)).reading).toEqual(original.reading);
+
+  const pause = page.getByRole("button", { name: "暂停动态效果", exact: true });
+  await pause.click();
+  await expect(pause).toHaveAttribute("aria-pressed", "true");
+  const runningCount = () =>
+    flow.evaluate(
+      (element) =>
+        element
+          .getAnimations({ subtree: true })
+          .filter((animation) => animation.playState === "running").length,
+    );
+  await expect.poll(runningCount).toBe(0);
+  await page.getByTestId("tarot-pick-1").click();
+  await expectChosenArt(page, 1, original.tarotDeck![1]);
+  await pause.click();
+  await expect(pause).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(runningCount).toBeGreaterThan(0);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(runningCount).toBe(0);
+  expect((await current(page)).reading).toEqual(original.reading);
+  expect((await current(page)).tarotDeck).toEqual(original.tarotDeck);
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-random-calls",
+    "181",
+  );
+
+  await page.reload();
+  await expect(page.getByTestId("tarot-deck")).toBeVisible();
+  await expect.poll(runningCount).toBe(0);
+  await expect(page.locator("html")).not.toHaveAttribute("data-random-calls");
+  expect((await current(page)).tarotPicked).toEqual([0, 1]);
+  expect((await current(page)).tarotDeck).toEqual(original.tarotDeck);
+  expect((await current(page)).reading).toEqual(original.reading);
+  for (const order of [0, 1])
+    await expectChosenArt(page, order, original.tarotDeck![order]);
+  await page.getByTestId("tarot-pick-2").click();
+  await expect(page.getByTestId("tarot-deck")).toHaveCount(0);
+  await expect(
+    page.getByTestId("result-tarot").locator(".tarot-card-front"),
+  ).toHaveCount(3);
+  await expect(page.locator("html")).not.toHaveAttribute("data-random-calls");
 });
 
 test("legacy complete draws without journey fields remain open without changing their frozen result", async ({
