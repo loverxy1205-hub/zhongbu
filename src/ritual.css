@@ -1,0 +1,382 @@
+/* Local ornamental animation. It never represents or changes a draw. */
+.ritual-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+  background: #f7eef8de;
+  backdrop-filter: blur(14px);
+  animation: ritual-arrive 220ms ease-out both;
+}
+.ritual-window {
+  width: min(850px, 100%);
+  padding: 39px 30px 24px;
+  border: 1px solid #decbe1;
+  border-radius: 28px;
+  text-align: center;
+  color: #533d5f;
+  background:
+    radial-gradient(ellipse at 50% 0, #f4e0eea3, transparent 68%), #fffafb;
+  box-shadow:
+    0 24px 100px #42234c21,
+    inset 0 0 0 6px #ffffff8c;
+}
+.ritual-eyebrow {
+  display: block;
+  color: #85658a;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+.ritual-window h2 {
+  margin: 15px 0 10px;
+  font:
+    500 clamp(1.5rem, 4vw, 2rem) / 1.45 Georgia,
+    "Songti SC",
+    SimSun,
+    serif;
+  letter-spacing: 0.12em;
+  color: #60406d;
+}
+.ritual-window > p {
+  margin: 0;
+  color: #82678b;
+  font-size: 0.87rem;
+}
+.ritual-ensemble {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin: 28px auto 24px;
+}
+.ritual-world {
+  flex: 1 1 116px;
+  max-width: 185px;
+  min-width: 0;
+  padding: 7px 8px 14px;
+  border: 1px solid #e6d9e9;
+  border-radius: 52% 52% 12px 12px / 32% 32% 8px 8px;
+  background: #f8f0f9;
+}
+.ritual-world-tarot {
+  background: linear-gradient(160deg, #493155, #251b38);
+  border-color: #785b88;
+  color: #edd2a4;
+}
+.ritual-world-iching {
+  background: linear-gradient(160deg, #fff5df, #f4e8cf);
+  border-color: #decca5;
+  color: #8d6631;
+}
+.ritual-world-meihua {
+  background: linear-gradient(160deg, #fff6f5, #f7e2e8);
+  border-color: #e6c5d1;
+  color: #a45671;
+}
+.ritual-world-numerology {
+  background: linear-gradient(160deg, #e6fcf7, #e4f0fb);
+  border-color: #aacecd;
+  color: #277286;
+}
+.ritual-world-runes {
+  background: linear-gradient(160deg, #2d5146, #19322f);
+  border-color: #58776c;
+  color: #bce4cc;
+}
+.ritual-world h3 {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  color: inherit;
+}
+.ritual-world p {
+  margin: 0;
+  font-size: 0.6rem;
+  line-height: 1.6;
+  color: inherit;
+  opacity: 0.85;
+}
+.engine-meditation {
+  width: 145px;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  color: #986fab;
+}
+.engine-meditation svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.meditation-tarot {
+  color: #b986c7;
+}
+.ritual-world-tarot .meditation-tarot {
+  color: #ecc992;
+}
+.meditation-card {
+  fill: #493250;
+  transform-origin: 90px 112px;
+}
+.meditation-card-0 {
+  animation: ritual-card-left 2.5s ease-in-out infinite;
+}
+.meditation-card-1 {
+  animation: ritual-card-right 2.5s ease-in-out infinite;
+}
+.meditation-card-2 {
+  animation: ritual-card-lift 2.5s ease-in-out infinite;
+}
+.meditation-star-orbit,
+.meditation-number-orbit {
+  transform-origin: 90px 75px;
+  animation: ritual-orbit 20s linear infinite;
+}
+.meditation-iching {
+  color: #9c7136;
+}
+.meditation-coins .coin-face {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ritual-coin 2.2s ease-in-out infinite;
+}
+.meditation-coins > g:nth-child(2) .coin-face {
+  animation-delay: -0.7s;
+}
+.meditation-coins > g:nth-child(3) .coin-face {
+  animation-delay: -1.3s;
+}
+.meditation-meihua {
+  color: #ad6480;
+}
+.meditation-moon {
+  fill: #eac6d0;
+  stroke: none;
+  opacity: 0.48;
+}
+.meditation-meihua .plum-blossom {
+  fill: #efa9bc;
+  stroke: #bf6c89;
+  stroke-width: 0.7;
+}
+.meditation-meihua .plum-heart {
+  fill: #f8e3a4;
+  stroke: none;
+}
+.meditation-meihua .plum-stamen {
+  stroke-width: 0.6;
+}
+.meditation-petal {
+  animation: ritual-petal 4s linear infinite;
+}
+.meditation-petal-0 {
+  animation-delay: -2s;
+}
+.meditation-petal-1 {
+  animation-delay: -0.5s;
+}
+.meditation-petal-2 {
+  animation-delay: -3.2s;
+}
+.meditation-petal-3 {
+  animation-delay: -1.4s;
+}
+.meditation-petal-4 {
+  animation-delay: -2.6s;
+}
+.meditation-numerology {
+  color: #34859b;
+}
+.meditation-runes {
+  color: #91bb9f;
+}
+.meditation-stone {
+  fill: #385f51;
+  animation: ritual-stone 4.5s ease-in-out infinite alternate;
+}
+.meditation-stone-1 {
+  animation-delay: -1.5s;
+}
+.meditation-stone-2 {
+  animation-delay: -3s;
+}
+.meditation-engraving {
+  stroke: #d1ecd9;
+  stroke-width: 2;
+}
+.meditation-northern-light {
+  animation: ritual-northern-light 7s ease-in-out infinite alternate;
+}
+.ritual-progress {
+  height: 2px;
+  width: 86px;
+  margin: 0 auto 20px;
+  overflow: hidden;
+  background: #ecdfef;
+}
+.ritual-progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #a578b2;
+  transform-origin: left center;
+  animation: ritual-progress 2.7s linear both;
+}
+.ritual-window .ritual-skip {
+  padding: 7px 17px;
+  border: 1px solid #d4bedc;
+  border-radius: 22px;
+  color: #71517c;
+  background: #ffffffa8;
+  font-size: 0.76rem;
+}
+.ritual-window .ritual-skip:hover {
+  background: #f1e5f5;
+  border-color: #a783b5;
+}
+.ritual-window .ritual-skip:focus-visible {
+  outline: 2px solid #9765ad;
+  outline-offset: 4px;
+}
+@keyframes ritual-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes ritual-card-left {
+  0%,
+  100% {
+    transform: translateX(-9px) rotate(-9deg);
+  }
+  45% {
+    transform: translate(-27px, 1px) rotate(-22deg);
+  }
+  75% {
+    transform: translate(-2px, -3px) rotate(-3deg);
+  }
+}
+@keyframes ritual-card-right {
+  0%,
+  100% {
+    transform: translateX(9px) rotate(9deg);
+  }
+  45% {
+    transform: translate(27px, 1px) rotate(22deg);
+  }
+  75% {
+    transform: translate(2px, -3px) rotate(3deg);
+  }
+}
+@keyframes ritual-card-lift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  48% {
+    transform: translateY(-9px);
+  }
+  75% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes ritual-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ritual-coin {
+  0%,
+  100% {
+    transform: translateY(2px) rotateY(0deg) rotate(-8deg);
+  }
+  50% {
+    transform: translateY(-8px) rotateY(180deg) rotate(8deg);
+  }
+  99% {
+    transform: translateY(2px) rotateY(360deg) rotate(-8deg);
+  }
+}
+@keyframes ritual-petal {
+  from {
+    transform: translate(8px, -15px) rotate(0deg);
+  }
+  45% {
+    transform: translate(-5px, 67px) rotate(75deg);
+  }
+  to {
+    transform: translate(9px, 168px) rotate(180deg);
+  }
+}
+@keyframes ritual-stone {
+  from {
+    transform: translateY(0) rotate(-2deg);
+  }
+  to {
+    transform: translateY(-4px) rotate(2deg);
+  }
+}
+@keyframes ritual-northern-light {
+  from {
+    transform: translate(-5px, -5px);
+  }
+  to {
+    transform: translate(7px, 7px);
+  }
+}
+@keyframes ritual-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.motion-paused .engine-meditation *,
+.motion-paused .ritual-progress span {
+  animation-play-state: paused;
+}
+@media (max-width: 620px) {
+  .ritual-transition {
+    padding: 15px;
+  }
+  .ritual-window {
+    padding: 28px 15px 20px;
+  }
+  .ritual-ensemble {
+    gap: 10px;
+    margin: 20px auto;
+  }
+  .ritual-world {
+    flex: 0 1 calc(33.333% - 7px);
+    padding: 4px 4px 11px;
+  }
+  .ritual-world h3 {
+    font-size: 0.76rem;
+  }
+  .ritual-world p {
+    font-size: 0.56rem;
+  }
+}
+@media (max-width: 380px) {
+  .ritual-world {
+    flex-basis: calc(50% - 5px);
+    max-width: 115px;
+  }
+  .ritual-world .engine-meditation {
+    width: 88px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ritual-transition,
+  .engine-meditation *,
+  .ritual-progress span {
+    animation: none;
+  }
+}

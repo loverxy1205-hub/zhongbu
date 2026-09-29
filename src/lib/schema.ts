@@ -25,7 +25,9 @@ const para = z.object({
 const input = z
   .object({
     question: z.string().max(2000),
-    category: z.enum(["日常", "学业", "工作", "人际", "自我探索", "其他"]),
+    category: z
+      .enum(["日常", "学业", "工作", "人际", "自我探索", "其他"])
+      .optional(),
     mode: z.enum(["action", "explore"]),
     scene: z.enum([
       "无预设",
@@ -36,6 +38,12 @@ const input = z
       "一般选择",
     ]),
     action: z.string().max(300),
+    options: z
+      .array(z.string().trim().min(1).max(300))
+      .min(2)
+      .max(10)
+      .refine((values) => new Set(values).size === values.length)
+      .optional(),
     targetDate: z.string(),
     timezone: z.string(),
     engines: z.array(engine).min(1).max(5),

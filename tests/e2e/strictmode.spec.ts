@@ -2,9 +2,7 @@ import { test, expect } from "@playwright/test";
 test("development StrictMode mounts and double submission never repeat draws", async ({
   page,
 }) => {
-  await page.goto("/");
-  await page.getByLabel("出生日期").fill("1998-06-15");
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
     const original = crypto.getRandomValues.bind(crypto);
     Object.defineProperty(crypto, "getRandomValues", {
       value: (buffer: Uint32Array<ArrayBuffer>) => {
@@ -16,12 +14,29 @@ test("development StrictMode mounts and double submission never repeat draws", a
       },
     });
   });
+  await page.goto("/");
+  await page.getByLabel("出生日期").fill("1998-06-15");
+  expect(
+    await page.locator("html").getAttribute("data-random-calls"),
+  ).toBeNull();
   await page.locator("form").evaluate((f) => {
     f.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     f.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   });
-  await expect(page.getByTestId("result-tarot")).toBeVisible();
+  await expect(page.getByTestId("ritual-transition")).toBeVisible();
+  await expect(page.locator(".result-card")).toHaveCount(0);
   // ID 4 + tarot 3 selections / 3 orientations + coins 18 + runes 3 = 31.
+  expect(await page.locator("html").getAttribute("data-random-calls")).toBe(
+    "31",
+  );
+  const frozen = await page.evaluate(() =>
+    sessionStorage.getItem("zhongbu-active-v1"),
+  );
+  await page.getByRole("button", { name: "跳过动画", exact: true }).click();
+  await expect(page.getByTestId("result-tarot")).toBeVisible();
+  expect(
+    await page.evaluate(() => sessionStorage.getItem("zhongbu-active-v1")),
+  ).toBe(frozen);
   expect(await page.locator("html").getAttribute("data-random-calls")).toBe(
     "31",
   );
@@ -30,6 +45,13 @@ test("development StrictMode mounts and double submission never repeat draws", a
     .getByRole("button", { name: "我更认同" })
     .click();
   await page.getByRole("button", { name: "规则汇总", exact: true }).click();
+  expect(await page.locator("html").getAttribute("data-random-calls")).toBe(
+    "31",
+  );
+  await page.getByRole("button", { name: "暂停动态效果", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "暂停动态效果", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   expect(await page.locator("html").getAttribute("data-random-calls")).toBe(
     "31",
   );

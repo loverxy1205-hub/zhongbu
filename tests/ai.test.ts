@@ -18,7 +18,8 @@ const input: Input = {
   category: "人际",
   mode: "action",
   scene: "沟通联系",
-  action: "不联系",
+  action: "",
+  options: ["不联系", "联系"],
   targetDate: "2026-09-29",
   timezone: "Asia/Shanghai",
   engines,
@@ -26,12 +27,28 @@ const input: Input = {
   reversals: true,
   everydayOnly: true,
 };
-function reading() {
+function reading(overrides: Partial<Input> = {}) {
   let seed = 17;
-  return createReading(input, instant, () => {
+  return createReading({ ...input, ...overrides }, instant, () => {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     return seed;
   });
+}
+function legacyReading() {
+  const source = structuredClone(reading());
+  source.input.category = "人际";
+  source.input.action = "不联系";
+  delete source.input.options;
+  // A restored pre-v1.2 snapshot already contains its frozen reflection text.
+  for (const result of source.results)
+    if (result.interpretation)
+      result.interpretation.reflection = result.interpretation.reflection.map(
+        (paragraph) => ({
+          ...paragraph,
+          text: "原记录关于「不联系」的冻结反思。",
+        }),
+      );
+  return source;
 }
 const response: AiResponse = {
   text: "这组象征可以成为观察边界的一个角度。你可以保留自己的理解，结合真实经历慢慢思考。",
@@ -60,7 +77,6 @@ describe("single-engine AI request privacy", () => {
       "readingId",
     ]);
     expect(Object.keys(request.context).sort()).toEqual([
-      "category",
       "mode",
       "scene",
       "targetDate",
@@ -115,30 +131,32 @@ describe("single-engine AI request privacy", () => {
   it.each(engines)(
     "%s omits free text even when action is embedded in reflections",
     (engine) => {
-      const source = reading();
+      const source = legacyReading();
       expect(
         source.results
           .find((r) => r.engine === engine)!
           .interpretation!.reflection.some((p) =>
-            p.text.includes(input.action),
+            p.text.includes(source.input.action),
           ),
       ).toBe(true);
       const request = buildAiRequest(source, engine, false);
       expect(request.context).not.toHaveProperty("question");
       expect(request.context).not.toHaveProperty("action");
+      expect(request.context).not.toHaveProperty("options");
       expect(request.evidence.reflection).toEqual([]);
       expect(JSON.stringify(request)).not.toContain(input.question);
-      expect(JSON.stringify(request)).not.toContain(input.action);
+      expect(JSON.stringify(request)).not.toContain(source.input.action);
     },
   );
 
   it.each(engines)(
-    "%s preserves the exact opted-in question and negated action",
+    "%s includes the exact question and legacy negated action by default",
     (engine) => {
-      const source = reading();
-      const request = buildAiRequest(source, engine, true);
+      const source = legacyReading();
+      const request = buildAiRequest(source, engine);
       expect(request.context.question).toBe(input.question);
       expect(request.context.action).toBe("不联系");
+      expect(request.context).not.toHaveProperty("category");
       expect(request.evidence.reflection).toEqual(
         source.results
           .find((r) => r.engine === engine)!
@@ -154,6 +172,52 @@ describe("single-engine AI request privacy", () => {
       expect(JSON.stringify(request)).not.toContain(instant);
     },
   );
+
+  it.each(engines)(
+    "%s sends every action option in original order without changing negation",
+    (engine) => {
+      const options = [
+        "今天不联系对方，先整理自己的想法",
+        "今天联系对方，但不谈尚未确认的消息",
+        "明天只发一句问候",
+        "先不决定，等对方回复后再选",
+      ];
+      const source = reading({ action: "", options });
+      const before = JSON.stringify(source);
+      const request = buildAiRequest(source, engine);
+      expect(request.context.options).toEqual(options);
+      expect(request.context.options).not.toBe(source.input.options);
+      expect(request.context.question).toBe(input.question);
+      expect(request.context.action).toBe("");
+      expect(request.context).not.toHaveProperty("category");
+      expect(JSON.stringify(request)).not.toContain(input.birthday);
+      expect(JSON.stringify(request)).not.toContain(instant);
+      expect(JSON.stringify(source)).toBe(before);
+      // Option comparison uses the one existing result, not another draw.
+      expect(request.evidence.rawSummary).toBe(
+        buildAiRequest(reading(), engine).evidence.rawSummary,
+      );
+      const withoutContext = buildAiRequest(source, engine, false);
+      expect(withoutContext.context).not.toHaveProperty("question");
+      expect(withoutContext.context).not.toHaveProperty("action");
+      expect(withoutContext.context).not.toHaveProperty("options");
+      expect(withoutContext.evidence.reflection).toEqual([]);
+      for (const text of [input.question, ...options])
+        expect(JSON.stringify(withoutContext)).not.toContain(text);
+    },
+  );
+
+  it("does not send dormant action options with an exploration question", () => {
+    const source = structuredClone(reading({ mode: "explore", action: "" }));
+    source.input.options = [
+      "PRIVATE_DORMANT_OPTION_A",
+      "PRIVATE_DORMANT_OPTION_B",
+    ];
+    const request = buildAiRequest(source, "tarot");
+    expect(request.context.question).toBe(input.question);
+    expect(request.context).not.toHaveProperty("options");
+    expect(JSON.stringify(request)).not.toContain("PRIVATE_DORMANT_OPTION");
+  });
 
   it("rejects missing or unavailable engine results", () => {
     const source = structuredClone(reading());

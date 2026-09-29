@@ -120,12 +120,15 @@ test("double submit generates one record, explicit again generates a new one", a
     f.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     f.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   });
-  await expect(page.getByTestId("result-tarot")).toBeVisible();
   const first = (await current(page)).reading;
-  await page.getByRole("button", { name: "跳过动画／减少动态" }).click();
+  await expect(page.getByTestId("ritual-transition")).toBeVisible();
+  await expect(page.locator(".result-card")).toHaveCount(0);
+  await page.getByRole("button", { name: "跳过动画", exact: true }).click();
+  await expect(page.getByTestId("result-tarot")).toBeVisible();
   expect((await current(page)).reading).toEqual(first);
   await page.getByRole("button", { name: /再问一次/ }).click();
   await page.getByRole("button", { name: "开启这次探索" }).click();
+  await expect(page.getByTestId("ritual-transition")).toBeVisible();
   expect((await current(page)).reading.readingId).not.toBe(first.readingId);
 });
 test("offline calculation, source library and offline refresh after caching", async ({
@@ -202,17 +205,21 @@ test("blocked storage reports an error but still calculates and exports", async 
     page.getByRole("button", { name: "Markdown", exact: true }),
   ).toBeVisible();
 });
-test("action text preserves negation and unknown action has no forced tendency", async ({
+test("ordered options preserve negation without forcing a local tendency", async ({
   page,
 }) => {
   await page.goto("/");
   await page.getByLabel("行动取舍", { exact: false }).check();
-  await page.getByLabel("我正在考虑做什么").fill("不联系对方");
+  await page.getByLabel("选项 1", { exact: true }).fill("不联系对方");
+  await page.getByLabel("选项 2", { exact: true }).fill("先整理想说的话");
   await page.getByLabel("预设场景").selectOption("沟通联系");
   await page.getByRole("button", { name: "开启这次探索" }).click();
-  await expect(page.locator(".exact-action")).toContainText("不联系对方");
+  await expect(page.getByTestId("result-tarot")).toBeVisible();
+  await expect(
+    page.getByText("不联系对方", { exact: true }).first(),
+  ).toBeVisible();
   const r = (await current(page)).reading;
-  expect(r.input.action).toBe("不联系对方");
+  expect(r.input.options).toEqual(["不联系对方", "先整理想说的话"]);
   expect(
     r.results
       .filter((x: { status: string }) => x.status === "ok")
@@ -249,16 +256,23 @@ test("method library is complete and keyboard-accessible; layout has no horizont
     ),
   ).toBeTruthy();
 });
-test("result diagrams, full process and provenance remain readable with reduced motion", async ({
+test("raw results and plain reflections remain while technical disclosures are removed", async ({
   page,
 }, info) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await start(page);
   const coin = page.getByTestId("result-iching");
-  await coin.getByText("计算或抽取过程", { exact: true }).click();
-  await expect(coin.locator("tbody tr")).toHaveCount(6);
-  await coin.getByText("传统原文 · 本卦、全部动爻与变卦").click();
-  await expect(coin.locator(".classical")).toBeVisible();
+  await expect(coin.locator(".hex-figure")).toHaveCount(2);
+  await expect(
+    page.getByTestId("result-tarot").locator(".symbol-slot"),
+  ).toHaveCount(3);
+  await expect(coin.locator(".result-reading")).toBeVisible();
+  await expect(coin.locator(".reflection-box")).toBeVisible();
+  await expect(page.locator(".result-card details")).toHaveCount(0);
+  for (const text of ["追溯依据", "计算或抽取过程", "来源与限制"])
+    await expect(
+      page.locator(".result-card").getByText(text, { exact: true }),
+    ).toHaveCount(0);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

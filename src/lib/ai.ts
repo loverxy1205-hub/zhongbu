@@ -33,7 +33,7 @@ function rawSummary(raw: Raw): string {
 export function buildAiRequest(
   reading: Reading,
   engine: EngineId,
-  includeContext: boolean,
+  includeContext: boolean = true,
 ): AiRequest {
   const result = reading.results.find((r) => r.engine === engine);
   if (!result?.raw || !result.interpretation || result.status !== "ok")
@@ -46,12 +46,17 @@ export function buildAiRequest(
     readingId: reading.readingId,
     engine,
     context: {
-      category: input.category,
       mode: input.mode,
       scene: input.scene,
       targetDate: input.targetDate,
       ...(includeContext
-        ? { question: input.question, action: input.action }
+        ? {
+            question: input.question,
+            action: input.action,
+            ...(input.mode === "action" && input.options
+              ? { options: [...input.options] }
+              : {}),
+          }
         : {}),
     },
     evidence: {
@@ -60,7 +65,7 @@ export function buildAiRequest(
       themes: i.themes,
       rawSummary: rawSummary(result.raw),
       paragraphs: paragraphs(i.paragraphs),
-      // Scene reflections embed the exact action. Omit the entire field's content unless opted in.
+      // Older callers can omit all free text, including text embedded in reflections.
       reflection: includeContext ? paragraphs(i.reflection) : [],
       traditional: paragraphs(i.traditional),
     },

@@ -25,15 +25,31 @@ export function createReading(
 ): Reading {
   parseDate(input.targetDate);
   if (!input.engines.length) throw Error("请至少选择一套占卜体系");
-  if (input.mode === "action" && !input.action.trim())
-    throw Error("请明确填写正在考虑的行动");
+  const options =
+    input.mode === "action"
+      ? input.options?.map((option) => option.trim())
+      : undefined;
+  if (input.mode === "action") {
+    if (!options || options.length < 2 || options.length > 10)
+      throw Error("请填写至少两个选项，最多可以比较十个选项。");
+    if (options.some((option) => !option || option.length > 300))
+      throw Error("每个选项都需要填写，且不能超过 300 字。");
+    if (new Set(options).size !== options.length)
+      throw Error("选项不能完全相同，请写出不同的选择。");
+  }
   if (input.question.length > 2000 || input.action.length > 300)
     throw Error("问题或行动内容过长");
   if (!Number.isFinite(new Date(askedAt).getTime()))
     throw Error("问卜时刻无效");
-  const { birthday: _birthday, ...rest } = input;
+  const {
+    birthday: _birthday,
+    category: _category,
+    options: _options,
+    ...rest
+  } = input;
   const publicInput: PublicInput = structuredClone({
     ...rest,
+    ...(options ? { options, action: "" } : {}),
     engines: [...new Set(input.engines)],
   });
   const id = readingId(rng);

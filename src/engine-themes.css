@@ -167,6 +167,16 @@
   border-color: var(--engine-rule);
   font-size: 1.02rem;
 }
+.result-card .result-reading {
+  padding: 8px 0 10px;
+}
+.result-card .reading-section-title {
+  color: var(--engine-accent);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  margin: 0 0 17px;
+}
 .result-card .result-detail {
   border-color: var(--engine-rule);
   color: var(--engine-ink);
@@ -276,7 +286,36 @@
   color: #e0d49b;
 }
 .tarot-constellation {
-  animation: celestial-shimmer 5s ease-in-out infinite alternate;
+  opacity: 0.7;
+}
+.tarot-constellation > path {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ornament-turn 14s linear infinite;
+}
+.tarot-constellation > path:nth-child(even) {
+  animation-direction: reverse;
+  animation-duration: 19s;
+}
+.tarot-orbit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  color: #e5bd79;
+}
+.tarot-orbit-stars {
+  transform-origin: 48px 64px;
+  animation: ornament-turn 29s linear infinite;
+}
+.symbol-slot:nth-child(2) .tarot-orbit-stars {
+  animation-delay: -10s;
+  animation-direction: reverse;
+}
+.symbol-slot:nth-child(3) .tarot-orbit-stars {
+  animation-delay: -19s;
 }
 .result-card .card-number {
   color: #efd6a9;
@@ -344,8 +383,19 @@
   opacity: 0.2;
 }
 .landscape-coins {
-  opacity: 0.65;
+  opacity: 0.85;
   stroke-width: 1.3;
+}
+.landscape-coins .coin-face {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bronze-turn 6s ease-in-out infinite;
+}
+.landscape-coins > g:nth-child(2) .coin-face {
+  animation-delay: -2s;
+}
+.landscape-coins > g:nth-child(3) .coin-face {
+  animation-delay: -4s;
 }
 .landscape-meihua .plum-moon {
   fill: #f1c7cf;
@@ -368,10 +418,28 @@
   stroke: #9e4758;
   stroke-width: 0.6;
 }
-.landscape-meihua .falling-petal {
-  fill: #d96f90;
+.landscape-meihua .falling-blossom {
   opacity: 0.65;
-  animation: plum-drift 8s ease-in-out infinite alternate;
+  animation: plum-fall 14s linear infinite;
+}
+.landscape-meihua .falling-blossom-0 {
+  animation-delay: -11s;
+}
+.landscape-meihua .falling-blossom-1 {
+  animation-delay: -3s;
+  animation-duration: 17s;
+}
+.landscape-meihua .falling-blossom-2 {
+  animation-delay: -7s;
+  animation-duration: 13s;
+}
+.landscape-meihua .falling-blossom-3 {
+  animation-delay: -15s;
+  animation-duration: 18s;
+}
+.landscape-meihua .falling-blossom-4 {
+  animation-delay: -5s;
+  animation-duration: 16s;
 }
 .result-card .hex-pair .hex-figure {
   position: relative;
@@ -469,7 +537,7 @@
   height: 100%;
   color: #14819a;
   pointer-events: none;
-  animation: celestial-shimmer 6s ease-in-out infinite alternate;
+  animation: ornament-turn 65s linear infinite;
 }
 .result-card .personal-day > strong {
   color: #096375;
@@ -627,20 +695,36 @@
   color: #bad5bd;
 }
 
-@keyframes celestial-shimmer {
+@keyframes ornament-turn {
   from {
-    opacity: 0.55;
+    transform: rotate(0deg);
   }
   to {
-    opacity: 0.95;
+    transform: rotate(360deg);
   }
 }
-@keyframes plum-drift {
-  from {
-    transform: translate(0, -2px);
+@keyframes bronze-turn {
+  0%,
+  12% {
+    transform: rotateY(0deg) rotate(-8deg);
   }
-  to {
-    transform: translate(-5px, 5px);
+  50% {
+    transform: rotateY(180deg) rotate(8deg);
+  }
+  88%,
+  100% {
+    transform: rotateY(360deg) rotate(-8deg);
+  }
+}
+@keyframes plum-fall {
+  0% {
+    transform: translate(8px, -25px) rotate(0deg);
+  }
+  45% {
+    transform: translate(-12px, 125px) rotate(75deg);
+  }
+  100% {
+    transform: translate(15px, 285px) rotate(170deg);
   }
 }
 @keyframes aurora-breathe {
@@ -771,9 +855,11 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tarot-constellation,
+  .tarot-constellation > path,
+  .tarot-orbit-stars,
   .number-orbit,
-  .landscape-meihua .falling-petal,
+  .landscape-coins .coin-face,
+  .landscape-meihua .falling-blossom,
   .result-card .rune-row::before {
     animation: none;
   }
@@ -781,4 +867,13 @@
   .result-card .rune-stone {
     transition: none;
   }
+}
+
+.motion-paused .tarot-constellation > path,
+.motion-paused .tarot-orbit-stars,
+.motion-paused .number-orbit,
+.motion-paused .landscape-coins .coin-face,
+.motion-paused .landscape-meihua .falling-blossom,
+.motion-paused .result-card .rune-row::before {
+  animation-play-state: paused;
 }

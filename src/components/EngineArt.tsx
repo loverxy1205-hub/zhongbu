@@ -18,7 +18,7 @@ function Spark({ x, y, size = 3 }: { x: number; y: number; size?: number }) {
   );
 }
 
-function Blossom({
+export function Blossom({
   x,
   y,
   size = 1,
@@ -57,14 +57,38 @@ function Blossom({
   );
 }
 
-function Coin({ x, y, r = 16 }: { x: number; y: number; r?: number }) {
+export function Coin({ x, y, r = 16 }: { x: number; y: number; r?: number }) {
   return (
     <g transform={`translate(${x} ${y})`}>
-      <circle r={r} fill="var(--coin-fill, #dfbd72)" />
-      <circle r={r - 3} />
-      <path d="M-4-4H4V4H-4Z" fill="var(--coin-hole, #fff4dc)" />
-      <path d="M0-12v4M0 8v4M-12 0h4M8 0h4" />
+      <g className="coin-face">
+        <circle r={r} fill="var(--coin-fill, #dfbd72)" />
+        <circle r={r - 3} />
+        <path d="M-4-4H4V4H-4Z" fill="var(--coin-hole, #fff4dc)" />
+        <path d="M0-12v4M0 8v4M-12 0h4M8 0h4" />
+      </g>
     </g>
+  );
+}
+
+/** Decorative motion stays outside the card face, preserving its orientation. */
+export function TarotOrbit() {
+  return (
+    <svg
+      className="tarot-orbit"
+      viewBox="0 0 96 128"
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth=".7"
+    >
+      <ellipse cx="48" cy="64" rx="43" ry="56" opacity=".25" />
+      <g className="tarot-orbit-stars">
+        <circle cx="48" cy="14" r="2" fill="currentColor" />
+        <Spark x={48} y={112} size={4} />
+        <Spark x={13} y={45} size={2.5} />
+      </g>
+    </svg>
   );
 }
 
@@ -518,9 +542,9 @@ export function EngineLandscape({ engine }: { engine: "iching" | "meihua" }) {
             opacity=".24"
           />
           <g className="landscape-coins">
-            <Coin x={30} y={37} r={16} />
-            <Coin x={60} y={30} r={15} />
-            <Coin x={50} y={58} r={14} />
+            <Coin x={242} y={30} r={17} />
+            <Coin x={281} y={27} r={18} />
+            <Coin x={320} y={35} r={16} />
           </g>
         </>
       ) : (
@@ -544,11 +568,13 @@ export function EngineLandscape({ engine }: { engine: "iching" | "meihua" }) {
           <Blossom x={447} y={209} size={1.6} rotate={20} />
           <Blossom x={478} y={164} size={1.25} />
           <Blossom x={348} y={64} size={1.2} rotate={45} />
-          <path
-            className="falling-petal"
-            d="M59 30q-11 4-8 14 12-1 8-14M326 192q-12 3-8 14 11-2 8-14M99 214q-12 4-8 14 12-2 8-14"
-            stroke="none"
-          />
+          {[140, 205, 280, 355, 425].map((x, n) => (
+            <g key={x} transform={`translate(${x} 0)`}>
+              <g className={`falling-blossom falling-blossom-${n}`}>
+                <Blossom x={0} y={0} size={0.55 + (n % 3) * 0.12} />
+              </g>
+            </g>
+          ))}
           <path d="M0 239q136-19 269 0t291 0" opacity=".15" />
         </>
       )}

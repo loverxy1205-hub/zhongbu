@@ -43,14 +43,6 @@ const sceneQuestions: Record<PublicInput["scene"], string> = {
   沟通联系: "对方的意愿、你的边界以及表达的时机，哪些已确认，哪些还需要询问？",
   一般选择: "两种安排各需要付出什么，又有哪些可以撤回或调整的部分？",
 };
-const categoryQuestions: Record<PublicInput["category"], string> = {
-  日常: "放回真实的日程中看一看。",
-  学业: "以实际学习要求和自己的理解为参照。",
-  工作: "结合明确的职责与资源来核对。",
-  人际: "不要用象征替代对方亲口表达的意愿。",
-  自我探索: "允许自己的答案与这里的象征不同。",
-  其他: "这里没有专属领域规则，保留通用反思。",
-};
 export function renderReflection(
   theme: Theme,
   input: PublicInput,
@@ -58,14 +50,16 @@ export function renderReflection(
 ): Paragraph {
   const prefix =
     input.mode === "action"
-      ? `你填写的行动是「${input.action}」。这段话保持该行动的原意。`
+      ? input.options?.length
+        ? `你正在比较${input.options.map((option, index) => `选项 ${index + 1}「${option}」`).join("、")}。把这个提醒分别放进每一种选择，看看条件与代价有什么不同。`
+        : `你填写的行动是「${input.action}」。这段话保持该行动的原意。`
       : "这是开放探索，不需要把答案压缩成做或不做。";
   return {
     label: `场景反思 · ${input.scene === "无预设" ? "通用" : input.scene}`,
-    text: `${prefix}${themeQuestions[theme]}${sceneQuestions[input.scene]}${categoryQuestions[input.category]}`,
+    text: `${prefix}${themeQuestions[theme]}${sceneQuestions[input.scene]}`,
     knowledgeId,
     ruleId: `scene-${input.scene}-${input.mode}-v1`,
-    templateId: `reflection-${theme}-${input.scene}-${input.category}-v1`,
+    templateId: `reflection-${theme}-${input.scene}-${input.options?.length ? "options" : input.mode}-v2`,
   };
 }
 export function renderEvidence(

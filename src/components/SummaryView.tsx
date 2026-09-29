@@ -73,13 +73,6 @@ export function SummaryView({
               周易与梅花易数属于相关体系，不是两份独立科学证据。
             </p>
           )}
-          <details>
-            <summary>汇总依据</summary>
-            <code>{s.ruleId}</code>
-            <p>
-              主题直接来自各体系的冻结解释，含不同位置的提醒。数量只描述出现次数，不表示概率、准确率或预测强度。
-            </p>
-          </details>
         </>
       )}
     </section>

@@ -30,6 +30,12 @@ export function inclinationFor(
       inclination: "无明确倾向",
       inclinationReason: "开放探索仅归纳主题，不做行动判断。",
     };
+  if (input.options?.length)
+    return {
+      inclination: "无明确倾向",
+      inclinationReason:
+        "本次是多个选项的比较；这组象征不为选项打分，也不替你投票。结合每个选项的实际条件再作判断。",
+    };
   if (
     !input.everydayOnly ||
     !ADAPTED_ACTIONS[input.scene]?.includes(input.action.trim())

@@ -1,9 +1,9 @@
 import type { EngineId } from "../types";
 export const VERSIONS = {
-  app: "1.1.0",
+  app: "1.2.0",
   knowledge: "2026.09.29-1",
-  rules: "1.0.0",
-  templates: "1.0.0",
+  rules: "1.1.0",
+  templates: "1.1.0",
   calendar: "lunar-typescript@1.8.6",
   schema: 1,
 } as const;

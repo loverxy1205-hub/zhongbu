@@ -88,6 +88,92 @@ afterEach(() => {
 });
 
 describe("single-engine interpretation proxy", () => {
+  it("accepts new context without categories and preserves every option in order", async () => {
+    const options = [
+      "今天不去上课，先整理落下的内容",
+      "去上课，但不承诺参加课后的活动",
+      "先询问能否旁听，再决定去不去",
+      "不改变现有安排",
+    ];
+    const context = {
+      mode: "action",
+      scene: "一般选择",
+      targetDate: "2026-09-29",
+      question: "我今天该怎么安排？请结合这几个选项给建议。",
+      action: "",
+      options,
+    };
+    const fetcher = successfulFetch();
+    const body = { ...sample, context };
+    expect(aiRequestSchema.safeParse(body).success).toBe(true);
+    expect((await handleRequest(request(body), env(), fetcher)).status).toBe(
+      200,
+    );
+    const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
+    expect(JSON.parse(payload.messages[1].content).context).toEqual(context);
+    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.29-3");
+    for (const requirement of [
+      "先正面回应用户的实际问题",
+      "同一份冻结结果用于比较所有选项",
+      "严格按原顺序逐一使用「选项1」「选项2」",
+      "每项都说明支持它的现实条件、主要代价或局限、一个可实行的小步骤",
+      "不能把「不去」变成「去」",
+      "不编造其性格、经历、关系、资源或未来事实",
+      "清晰的有条件建议",
+      "不得提供医疗、法律、金融投资、政治或投票行动推荐",
+    ])
+      expect(payload.messages[0].content).toContain(requirement);
+  });
+
+  it("keeps legacy requests with category and no options valid", async () => {
+    const fetcher = successfulFetch();
+    expect(aiRequestSchema.parse(sample).context).toEqual(sample.context);
+    expect((await handleRequest(request(sample), env(), fetcher)).status).toBe(
+      200,
+    );
+  });
+
+  it("allows ten nonempty options without trimming their original text", () => {
+    const options = Array.from(
+      { length: 10 },
+      (_, index) => ` 选项${index + 1}：不改变原意 `,
+    );
+    const parsed = aiRequestSchema.parse({
+      ...sample,
+      context: { ...sample.context, mode: "action", options },
+    });
+    expect(parsed.context.options).toEqual(options);
+  });
+
+  it.each(
+    [
+      [],
+      ["只有一个选项"],
+      ["", "有效选项"],
+      [" \n\t　", "有效选项"],
+      ["过".repeat(301), "有效选项"],
+      ["同一选项", "同一选项"],
+      [" 同一选项 ", "同一选项"],
+      Array.from({ length: 11 }, (_, index) => `选项${index + 1}`),
+      ["有效选项", 2],
+      ["有效选项", { text: "不接受对象" }],
+    ].map((options) => ({ options })),
+  )(
+    "rejects malformed option lists before calling the provider: $options",
+    async ({ options }) => {
+      const fetcher = successfulFetch();
+      const body = {
+        ...sample,
+        context: { ...sample.context, mode: "action", options },
+      };
+      expect(aiRequestSchema.safeParse(body).success).toBe(false);
+      expect((await handleRequest(request(body), env(), fetcher)).status).toBe(
+        400,
+      );
+      expect(fetcher).not.toHaveBeenCalled();
+    },
+  );
+
   it("calls only the fixed endpoint with the server credential and bounded parameters", async () => {
     const serverEnv = env();
     const fetcher = successfulFetch();

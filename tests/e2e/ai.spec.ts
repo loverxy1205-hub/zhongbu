@@ -5,7 +5,7 @@ import type { SavedReading } from "../../src/types";
 
 const endpoint = "http://127.0.0.1:5174/test-ai/interpret";
 const question = "我想先不联系对方，怎样理解自己的边界？";
-const action = "不联系";
+const options = ["不联系", "先整理想说的话", "等到周末再决定"];
 const answer: AiResponse = {
   text: "把这组象征当作一面小镜子，留意自己希望保留的空间。它只是一个反思角度，你可以保留不同的理解。",
   model: "deepseek-chat",
@@ -23,11 +23,18 @@ const complete = (route: Route) =>
     contentType: "application/json",
     body: JSON.stringify(answer),
   });
-async function start(page: Page) {
+async function start(
+  page: Page,
+  reducedMotion: "reduce" | "no-preference" = "reduce",
+) {
+  await page.emulateMedia({ reducedMotion });
   await page.goto("/");
   await page.getByLabel("你的问题").fill(question);
   await page.getByRole("radio", { name: /行动取舍/ }).check();
-  await page.getByLabel(/我正在考虑做什么/).fill(action);
+  await page.getByLabel("选项 1", { exact: true }).fill(options[0]);
+  await page.getByLabel("选项 2", { exact: true }).fill(options[1]);
+  await page.getByRole("button", { name: /添加更多选项/ }).click();
+  await page.getByLabel("选项 3", { exact: true }).fill(options[2]);
   await page.getByLabel(/预设场景/).selectOption("沟通联系");
   await page.getByLabel("出生日期").fill("1998-06-15");
   await page.getByRole("button", { name: "开启这次探索" }).click();
@@ -66,7 +73,7 @@ test("AI runs only on explicit click; double click, restoration and exports pres
     await pending;
     await complete(route);
   });
-  await start(page);
+  await start(page, "no-preference");
   await page
     .getByTestId("result-runes")
     .getByRole("button", { name: "置顶体系" })
@@ -79,15 +86,44 @@ test("AI runs only on explicit click; double click, restoration and exports pres
   expect(requests).toEqual([]);
   const panel = page.getByTestId("ai-tarot");
   await panel
-    .getByRole("button", { name: "✧ 生成灵感解读" })
+    .getByRole("button", { name: "获取针对问题的建议" })
     .evaluate((button) => {
       button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
   await expect.poll(() => requests.length).toBe(1);
+  await expect(panel).toHaveAttribute("aria-busy", "true");
+  await expect(panel.getByTestId("engine-meditation")).toBeVisible();
+  await expect
+    .poll(() =>
+      panel.evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState === "running").length,
+      ),
+    )
+    .toBeGreaterThan(0);
+  await expect(panel.getByRole("status")).toContainText(
+    "正在结合你的问题与选项",
+  );
+  await expect(panel.getByRole("progressbar")).toHaveCount(0);
+  await expect(panel.getByText(/\d+\s*%/)).toHaveCount(0);
   await expect(panel.getByRole("button")).toBeDisabled();
+  await page.getByRole("button", { name: "暂停动态效果", exact: true }).click();
+  await expect
+    .poll(() =>
+      panel.evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState === "running").length,
+      ),
+    )
+    .toBe(0);
   release();
   await expect(panel.locator(".ai-prose")).toHaveText(answer.text);
+  await expect(panel.getByTestId("engine-meditation")).toHaveCount(0);
   const generated = await current(page);
   expect(generated.reading).toEqual(original.reading);
   expect(generated.preferences).toEqual(original.preferences);
@@ -121,7 +157,7 @@ test("AI runs only on explicit click; double click, restoration and exports pres
   expect(requests).toHaveLength(1);
 });
 
-test("the opt-in selects exact question and action for only that engine", async ({
+test("clicking advice sends the exact question and ordered options for only that engine", async ({
   page,
 }) => {
   const requests: AiRequest[] = [];
@@ -132,26 +168,18 @@ test("the opt-in selects exact question and action for only that engine", async 
   await start(page);
   const original = (await current(page)).reading;
   const tarot = page.getByTestId("ai-tarot");
-  await expect(tarot.getByLabel("同时发送我的问题与行动")).not.toBeChecked();
-  await tarot.getByRole("button", { name: "✧ 生成灵感解读" }).click();
+  await expect(page.getByLabel("同时发送我的问题与行动")).toHaveCount(0);
+  await tarot.getByRole("button", { name: "获取针对问题的建议" }).click();
   await expect(tarot.locator(".ai-prose")).toBeVisible();
   expect(requests[0].engine).toBe("tarot");
-  expect(requests[0].evidence.reflection).toEqual([]);
-  expect(requests[0].context).not.toHaveProperty("question");
-  expect(requests[0].context).not.toHaveProperty("action");
-  expect(JSON.stringify(requests[0])).not.toContain(action);
   const runes = page.getByTestId("ai-runes");
-  await runes.getByLabel("同时发送我的问题与行动").check();
-  await runes.getByRole("button", { name: "✧ 生成灵感解读" }).click();
+  await runes.getByRole("button", { name: "获取针对问题的建议" }).click();
   await expect(runes.locator(".ai-prose")).toBeVisible();
   expect(requests).toHaveLength(2);
   expect(requests[1].engine).toBe("runes");
-  expect(requests[1].context.question).toBe(question);
-  expect(requests[1].context.action).toBe(action);
-  expect(
-    requests[1].evidence.reflection.every((p) => p.text.includes("「不联系」")),
-  ).toBe(true);
   for (const request of requests) {
+    expect(request.context.question).toBe(question);
+    expect(request.context.options).toEqual(options);
     expect(JSON.stringify(request)).not.toContain("1998-06-15");
     expect(JSON.stringify(request)).not.toContain(original.askedAt);
     expect(request).not.toHaveProperty("preferences");
@@ -177,7 +205,7 @@ test("an in-flight request survives preference, filter and view changes without 
   const original = (await current(page)).reading;
   await page
     .getByTestId("ai-tarot")
-    .getByRole("button", { name: "✧ 生成灵感解读" })
+    .getByRole("button", { name: "获取针对问题的建议" })
     .click();
   await expect.poll(() => calls).toBe(1);
   await page
@@ -248,17 +276,43 @@ for (const failure of [
     await start(page);
     const original = await current(page);
     const panel = page.getByTestId("ai-tarot");
-    await panel.getByRole("button", { name: "✧ 生成灵感解读" }).click();
+    await panel.getByRole("button", { name: "获取针对问题的建议" }).click();
     await expect(panel.getByRole("status")).toContainText(failure.message);
     await expect(
-      panel.getByRole("button", { name: "✧ 生成灵感解读" }),
+      panel.getByRole("button", { name: "获取针对问题的建议" }),
     ).toBeEnabled();
     expect((await current(page)).enhancements).toBeUndefined();
     expect((await current(page)).reading).toEqual(original.reading);
-    await panel.getByRole("button", { name: "✧ 生成灵感解读" }).click();
+    await panel.getByRole("button", { name: "获取针对问题的建议" }).click();
     await expect(panel.locator(".ai-prose")).toHaveText(answer.text);
     expect(calls).toBe(2);
     expect((await current(page)).reading).toEqual(original.reading);
     expect((await current(page)).preferences).toEqual(original.preferences);
   });
 }
+
+test("model content stays plain text and cannot execute markup or navigate", async ({
+  page,
+}) => {
+  const text =
+    '<img src=x onerror="window.__modelExecuted=true"><script>window.__modelExecuted=true</script><a href="https://example.com">外部内容</a>';
+  await page.route(endpoint, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...answer, text }),
+    }),
+  );
+  await start(page);
+  const original = (await current(page)).reading;
+  const panel = page.getByTestId("ai-tarot");
+  await panel.getByRole("button", { name: "获取针对问题的建议" }).click();
+  await expect(panel.locator(".ai-prose")).toHaveText(text);
+  await expect(
+    panel.locator(".ai-prose img, .ai-prose script, .ai-prose a"),
+  ).toHaveCount(0);
+  expect(
+    await page.evaluate(() => Object.hasOwn(window, "__modelExecuted")),
+  ).toBe(false);
+  expect((await current(page)).reading).toEqual(original);
+});

@@ -366,7 +366,7 @@ describe("independent interpretation and preferences", () => {
       ]) {
         expect(p.knowledgeId).toBeTruthy();
         expect(p.ruleId).toMatch(/v1$/);
-        expect(p.templateId).toMatch(/v1$/);
+        expect(p.templateId).toMatch(/v[1-9]\d*$/);
       }
   });
   it("a selected engine interprets identically in isolation", () => {

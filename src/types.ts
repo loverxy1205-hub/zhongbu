@@ -36,10 +36,12 @@ export interface Hexagram extends Knowledge {
 }
 export interface Input {
   question: string;
-  category: Category;
+  /** Only retained for reading pre-v1.2 records. New forms do not use categories. */
+  category?: Category;
   mode: "action" | "explore";
   scene: Scene;
   action: string;
+  options?: string[];
   targetDate: string;
   timezone: string;
   engines: EngineId[];

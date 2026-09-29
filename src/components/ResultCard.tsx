@@ -4,17 +4,17 @@ import type {
   Preferences,
   Raw,
   EngineId,
-  Interpretation,
 } from "../types";
 import { ENGINES } from "../data/meta";
 import { TAROT } from "../data/tarot";
 import { RUNES } from "../data/runes";
-import { hexByCode, TRIGRAMS } from "../data/hexagrams";
+import { hexByCode } from "../data/hexagrams";
 import {
   EngineAccent,
   EngineLandscape,
   NumberOrbit,
   TarotArt,
+  TarotOrbit,
 } from "./EngineArt";
 export function HexFigure({
   code,
@@ -65,6 +65,7 @@ export function RawVisual({ raw }: { raw: Raw }) {
                 0{i + 1} / {d.position}
               </span>
               <div className={`tarot-tile ${d.reversed ? "reversed" : ""}`}>
+                <TarotOrbit />
                 <div className="arcana-art" aria-hidden="true">
                   <TarotArt cardId={d.id} />
                 </div>
@@ -139,140 +140,12 @@ export function RawVisual({ raw }: { raw: Raw }) {
     </div>
   );
 }
-function TraceParagraph({ p }: { p: Paragraph }) {
+function ReadingParagraph({ p }: { p: Paragraph }) {
   return (
     <div className="interpretation-block">
       <h4>{p.label}</h4>
       <p>{p.text}</p>
-      <details className="trace">
-        <summary>追溯依据</summary>
-        <code>
-          知识 {p.knowledgeId}
-          <br />
-          规则 {p.ruleId}
-          <br />
-          模板 {p.templateId}
-        </code>
-      </details>
     </div>
-  );
-}
-function Originals({ interpretation }: { interpretation: Interpretation }) {
-  if (!interpretation.traditional.length) return null;
-  return (
-    <details className="result-detail">
-      <summary>
-        {
-          "\u4f20\u7edf\u539f\u6587 \u00b7 \u672c\u5366\u3001\u5168\u90e8\u52a8\u723b\u4e0e\u53d8\u5366"
-        }
-      </summary>
-      <div className="classical">
-        {interpretation.traditional.map((p, i) => (
-          <TraceParagraph p={p} key={i} />
-        ))}
-      </div>
-    </details>
-  );
-}
-function Process({ raw }: { raw: Raw }) {
-  if (raw.kind === "tarot")
-    return (
-      <p>
-        使用 Web Crypto 安全随机整数，经拒绝采样与部分洗牌从 78
-        张中无放回抽三张。逆位开关开启时，每张独立随机决定正逆位。翻牌动画只展示已冻结结果。
-      </p>
-    );
-  if (raw.kind === "runes")
-    return (
-      <p>
-        使用 Web Crypto 和拒绝采样，从 24 枚 Elder Futhark
-        符文无放回抽三枚，依次对应现状、阻力、提示。没有空白符或逆位。
-      </p>
-    );
-  if (raw.kind === "numerology")
-    return (
-      <ol>
-        {raw.trace.map((t) => (
-          <li key={t}>{t}</li>
-        ))}
-        <li>reduce：重复将十进制各位相加至 1–9，不保留大师数。</li>
-      </ol>
-    );
-  if (raw.kind === "iching")
-    return (
-      <>
-        <p>
-          固定一面记 2，另一面记 3。表按生成顺序从下往上；图按上爻在上显示。
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th>轮次／爻</th>
-              <th>三枚硬币</th>
-              <th>爻值</th>
-              <th>状态</th>
-            </tr>
-          </thead>
-          <tbody>
-            {raw.coins.map((c, i) => (
-              <tr key={i}>
-                <td>
-                  {i + 1}
-                  {i === 0 ? "（初爻）" : i === 5 ? "（上爻）" : ""}
-                </td>
-                <td>{c.join(" + ")}</td>
-                <td>{raw.values[i]}</td>
-                <td>
-                  {
-                    {
-                      6: "老阴 · 动",
-                      7: "少阳 · 静",
-                      8: "少阴 · 静",
-                      9: "老阳 · 动",
-                    }[raw.values[i]]
-                  }
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p>
-          自下而上编码：{raw.code} → {raw.changedCode}；仅 6 与 9 翻转。
-        </p>
-      </>
-    );
-  return (
-    <>
-      <p>
-        {raw.local}
-        <br />
-        {raw.lunar}
-        {raw.leap ? "（闰月按其月序数）" : ""}
-      </p>
-      <dl className="calculation-grid">
-        <dt>地支年序 Y</dt>
-        <dd>{raw.Y}</dd>
-        <dt>农历月序 M</dt>
-        <dd>{raw.M}</dd>
-        <dt>农历日数 D</dt>
-        <dd>{raw.D}</dd>
-        <dt>时支序 H</dt>
-        <dd>{raw.H}</dd>
-      </dl>
-      <p>
-        R(n,m) = ((n−1) mod m)+1
-        <br />
-        上卦 R({raw.Y + raw.M + raw.D},8) = {raw.upper}（
-        {TRIGRAMS[raw.upper - 1].name}）<br />
-        下卦 R({raw.Y + raw.M + raw.D + raw.H},8) = {raw.lower}（
-        {TRIGRAMS[raw.lower - 1].name}）<br />
-        动爻 R({raw.Y + raw.M + raw.D + raw.H},6) = {raw.moving}
-      </p>
-      <p>
-        使用冻结问卜时刻，而非目标日期。零点换日；23:00–01:00
-        为子时（1）；正月初一换年；不做真太阳时校正。
-      </p>
-    </>
   );
 }
 export function ResultCard({
@@ -322,45 +195,17 @@ export function ResultCard({
               ))}
             </div>
             <p className="reading-headline">{i.headline}</p>
-            <details className="result-detail" open>
-              <summary>本站白话 · 解读依据</summary>
+            <section className="result-reading" aria-label="本站白话">
+              <h4 className="reading-section-title">本站白话</h4>
               {i.paragraphs.map((p, n) => (
-                <TraceParagraph p={p} key={n} />
+                <ReadingParagraph p={p} key={n} />
               ))}
-            </details>
+            </section>
             <div className="reflection-box">
               {i.reflection.map((p, n) => (
-                <TraceParagraph p={p} key={n} />
+                <ReadingParagraph p={p} key={n} />
               ))}
             </div>
-            <Originals interpretation={i} />
-            <details className="result-detail">
-              <summary>计算或抽取过程</summary>
-              <Process raw={result.raw} />
-              <p className="muted">方法版本：{result.methodVersion}</p>
-            </details>
-            <details className="result-detail">
-              <summary>来源、适用规则与限制</summary>
-              <p>
-                {i.inclination}：{i.inclinationReason}
-              </p>
-              {i.sources.map((s, n) => (
-                <p key={n}>
-                  {s.startsWith("https:") ? (
-                    <a href={s} target="_blank" rel="noreferrer">
-                      《周易》原典冻结版本 ↗
-                    </a>
-                  ) : (
-                    s
-                  )}
-                </p>
-              ))}
-              <ul>
-                {i.limits.map((s) => (
-                  <li key={s}>{s}</li>
-                ))}
-              </ul>
-            </details>
           </>
         )
       )}

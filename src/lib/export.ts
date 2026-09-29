@@ -32,8 +32,8 @@ export function readingMarkdown(
     `# 众卜 · 一个问题，多种视角。`,
     DISCLAIMER,
     `记录：${reading.readingId}\n问卜时刻：${reading.askedAt}\n时区：${reading.input.timezone}\n目标日期：${reading.input.targetDate}`,
-    `问题：${reading.input.question}\n类别：${reading.input.category}\n场景：${reading.input.scene}\n模式：${reading.input.mode === "action" ? "行动取舍" : "开放探索"}\n行动：${reading.input.action}`,
-    `生日默认不记录；若你在问题或行动中自行填写个人信息，导出仍会包含这些自由文本，请在分享前检查。`,
+    `问题：${reading.input.question}\n场景：${reading.input.scene}\n模式：${reading.input.mode === "action" ? "行动取舍" : "开放探索"}\n${reading.input.options?.length ? reading.input.options.map((option, index) => `选项 ${index + 1}：${option}`).join("\n") : `行动：${reading.input.action}`}`,
+    `生日默认不记录；若你在问题或选项中自行填写个人信息，导出仍会包含这些自由文本，请在分享前检查。`,
     ...reading.results.map(resultMarkdown),
     ...reading.results.flatMap((r) => {
       const extra = enhancements?.[r.engine];

@@ -12,7 +12,10 @@ export const aiRequestSchema = z
     engine: z.enum(["tarot", "iching", "meihua", "numerology", "runes"]),
     context: z
       .object({
-        category: z.enum(["日常", "学业", "工作", "人际", "自我探索", "其他"]),
+        // Kept optional for requests and saved enhancements from older clients.
+        category: z
+          .enum(["日常", "学业", "工作", "人际", "自我探索", "其他"])
+          .optional(),
         mode: z.enum(["action", "explore"]),
         scene: z.enum([
           "无预设",
@@ -25,6 +28,21 @@ export const aiRequestSchema = z
         targetDate: z.iso.date(),
         question: z.string().max(2000).optional(),
         action: z.string().max(500).optional(),
+        options: z
+          .array(
+            z
+              .string()
+              .max(300)
+              .refine((text) => text.trim().length > 0),
+          )
+          .min(2)
+          .max(10)
+          .refine(
+            (options) =>
+              new Set(options.map((option) => option.trim())).size ===
+              options.length,
+          )
+          .optional(),
       })
       .strict(),
     evidence: z

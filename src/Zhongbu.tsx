@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type {
-  Category,
   EngineId,
   Input,
   Preferences,
@@ -9,7 +8,7 @@ import type {
   Scene,
   AiEnhancement,
 } from "./types";
-import { DISCLAIMER, ENGINES, ENGINE_IDS } from "./data/meta";
+import { ENGINES, ENGINE_IDS } from "./data/meta";
 import { createReading, deepFreeze } from "./engines/reading";
 import { detectTimezone, todayLocal } from "./lib/dates";
 import {
@@ -31,19 +30,21 @@ import {
 import { ResultCard } from "./components/ResultCard";
 import { EngineAccent } from "./components/EngineArt";
 import { AiPanel } from "./components/AiPanel";
+import { RitualTransition } from "./components/RitualTransition";
 import { useAi } from "./lib/useAi";
 import { KnowledgeLibrary } from "./components/KnowledgeLibrary";
 import { SummaryView } from "./components/SummaryView";
-import { ADAPTED_ACTIONS } from "./rules/interpret";
 import "./styles.css";
 import "./engine-themes.css";
 import "./experience.css";
+import "./ritual.css";
+import "./journey.css";
 const initialInput = (): Input => ({
   question: "",
-  category: "日常",
   mode: "explore",
   scene: "无预设",
   action: "",
+  options: ["", ""],
   targetDate: todayLocal(),
   timezone: detectTimezone(),
   engines: [...ENGINE_IDS],
@@ -80,9 +81,14 @@ export default function Zhongbu() {
     );
   const [historyError, setHistoryError] = useState(!!initialHistory.error),
     [formError, setFormError] = useState("");
-  const [animate, setAnimate] = useState(false),
+  const [drawing, setDrawing] = useState(false),
     [onlyFavorites, setOnlyFavorites] = useState(false),
     [confirmClear, setConfirmClear] = useState(false);
+  const [motionPaused, setMotionPaused] = useState(
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  const optionRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const finishDrawing = useCallback(() => setDrawing(false), []);
   const lock = useRef(!!initialSession.value),
     heading = useRef<HTMLHeadingElement>(null);
   const readingKey = active?.reading.readingId;
@@ -90,8 +96,16 @@ export default function Zhongbu() {
   const historyRef = useRef(history);
   const ai = useAi(active);
   useEffect(() => {
-    if (readingKey && page === "reading") heading.current?.focus();
-  }, [readingKey, page]);
+    if (readingKey && page === "reading" && !drawing) heading.current?.focus();
+  }, [readingKey, page, drawing]);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const changed = () => {
+      if (media.matches) setMotionPaused(true);
+    };
+    media.addEventListener("change", changed);
+    return () => media.removeEventListener("change", changed);
+  }, []);
   const activate = useCallback((value: SavedReading) => {
     activeRef.current = value;
     setActive(value);
@@ -193,7 +207,10 @@ export default function Zhongbu() {
     lock.current = true;
     setFormError("");
     try {
-      const reading = createReading(input, new Date().toISOString());
+      const reading = createReading(
+        { ...input, reversals: true },
+        new Date().toISOString(),
+      );
       activate({
         reading,
         preferences: defaultPreferences(reading),
@@ -202,7 +219,7 @@ export default function Zhongbu() {
       update("birthday", "");
       setView("all");
       setOnlyFavorites(false);
-      setAnimate(true);
+      setDrawing(!motionPaused);
     } catch (error) {
       lock.current = false;
       setFormError(
@@ -211,10 +228,25 @@ export default function Zhongbu() {
     }
   }
   function newReading() {
+    const previous = activeRef.current?.reading.input;
+    if (previous) {
+      const { category: _category, ...values } = previous;
+      setInput({
+        ...values,
+        birthday: "",
+        action: "",
+        reversals: true,
+        options: previous.options
+          ? [...previous.options]
+          : previous.mode === "action"
+            ? [previous.action, ""]
+            : ["", ""],
+      });
+    }
     lock.current = false;
     activeRef.current = null;
     setActive(null);
-    setAnimate(false);
+    setDrawing(false);
     setPage("reading");
     setFormError("");
     try {
@@ -260,7 +292,7 @@ export default function Zhongbu() {
         )
     : [];
   return (
-    <>
+    <div className={`app-shell ${motionPaused ? "motion-paused" : ""}`}>
       <a className="skip-link" href="#main">
         跳到主要内容
       </a>
@@ -295,9 +327,13 @@ export default function Zhongbu() {
             方法与知识
           </button>
         </nav>
-        <span className="local-badge">
-          <i /> 本地起卦 · 灵感随心
-        </span>
+        <button
+          className="motion-toggle"
+          aria-pressed={motionPaused}
+          onClick={() => setMotionPaused(!motionPaused)}
+        >
+          暂停动态效果
+        </button>
       </header>
       {notice && (
         <div className="notice" role="status">
@@ -368,7 +404,9 @@ export default function Zhongbu() {
                     <div>
                       <span className="section-kicker">
                         {h.reading.input.targetDate} ·{" "}
-                        {h.reading.input.category}
+                        {h.reading.input.mode === "action"
+                          ? "行动取舍"
+                          : "开放探索"}
                       </span>
                       <h3>
                         {h.reading.input.question || "一次没有标题的探索"}
@@ -388,7 +426,7 @@ export default function Zhongbu() {
                           setPage("reading");
                           setView("all");
                           setOnlyFavorites(false);
-                          setAnimate(false);
+                          setDrawing(false);
                         }}
                       >
                         打开原记录
@@ -421,9 +459,16 @@ export default function Zhongbu() {
               </div>
             )}
           </section>
+        ) : active && drawing ? (
+          <RitualTransition
+            engines={active.reading.input.engines}
+            onComplete={finishDrawing}
+            paused={motionPaused}
+          />
         ) : active ? (
           <section
-            className={`results-page ${animate ? "reveal-results" : ""}`}
+            className="results-page reveal-results"
+            data-reading-id={active.reading.readingId}
           >
             <div className="reading-topline">
               <span className="section-kicker">
@@ -435,7 +480,6 @@ export default function Zhongbu() {
               {active.reading.input.question || "留一个问题给此刻的自己。"}
             </h1>
             <div className="reading-context">
-              <span>{active.reading.input.category}</span>
               <span>
                 {active.reading.input.mode === "explore"
                   ? "开放探索"
@@ -444,27 +488,21 @@ export default function Zhongbu() {
               <span>目标 {active.reading.input.targetDate}</span>
               <span>{active.reading.input.scene}</span>
             </div>
-            {active.reading.input.mode === "action" && (
-              <p className="exact-action">
-                正在考虑的行动：<strong>{active.reading.input.action}</strong>
-              </p>
-            )}
-            <details className="reading-metadata">
-              <summary>已冻结 · 问卜时刻与版本信息</summary>
-              <p>
-                {active.reading.askedAt} · 时区 {active.reading.input.timezone}
-                <br />
-                <code data-testid="reading-id">{active.reading.readingId}</code>
-              </p>
-              <p>
-                {Object.entries(active.reading.versions)
-                  .map(([k, v]) => `${k}: ${v}`)
-                  .join(" / ")}
-              </p>
-              <p>
-                刷新、排序、收藏与偏好不会重新抽取。时间型体系在相同输入下可能不变。
-              </p>
-            </details>
+            {active.reading.input.mode === "action" &&
+              (active.reading.input.options?.length ? (
+                <ol className="reading-options" aria-label="本次比较的选项">
+                  {active.reading.input.options.map((option, index) => (
+                    <li key={index}>
+                      <span>选项 {index + 1}</span>
+                      <strong>{option}</strong>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="exact-action">
+                  正在考虑的行动：<strong>{active.reading.input.action}</strong>
+                </p>
+              ))}
             <div className="result-toolbar">
               <div className="tabs" aria-label="结果视图">
                 <button
@@ -518,18 +556,10 @@ export default function Zhongbu() {
                   >
                     Markdown
                   </button>
-                  <small>分享前检查问题和行动中的个人信息。</small>
+                  <small>分享前检查问题和选项中的个人信息。</small>
                 </details>
               </div>
             </div>
-            {animate && (
-              <button
-                className="skip-animation"
-                onClick={() => setAnimate(false)}
-              >
-                跳过动画／减少动态
-              </button>
-            )}
             {view === "all" ? (
               <>
                 <div className="compare-intro">
@@ -578,12 +608,8 @@ export default function Zhongbu() {
                           engine={r.engine}
                           enhancement={active.enhancements?.[r.engine]}
                           status={ai.statuses[`${readingKey}:${r.engine}`]}
-                          onGenerate={(includeContext) => {
-                            void ai.generate(
-                              r.engine,
-                              includeContext,
-                              completeAi,
-                            );
+                          onGenerate={() => {
+                            void ai.generate(r.engine, true, completeAi);
                           }}
                         />
                       )}
@@ -647,34 +673,6 @@ export default function Zhongbu() {
                     rows={3}
                   />
                 </label>
-                <div className="input-note">
-                  本地解读依据下方选择的类别、场景与行动；稍后可自愿让 AI
-                  结合你的问题展开。
-                </div>
-                <fieldset className="chip-field">
-                  <legend>问题类别</legend>
-                  <div className="chips">
-                    {(
-                      [
-                        "日常",
-                        "学业",
-                        "工作",
-                        "人际",
-                        "自我探索",
-                        "其他",
-                      ] as Category[]
-                    ).map((c) => (
-                      <button
-                        type="button"
-                        aria-pressed={input.category === c}
-                        onClick={() => update("category", c)}
-                        key={c}
-                      >
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                </fieldset>
                 <fieldset className="mode-field">
                   <legend>想从哪种方式开始</legend>
                   <div className="mode-options">
@@ -694,7 +692,7 @@ export default function Zhongbu() {
                           <small>
                             {m === "explore"
                               ? "看看有哪些值得留意的角度"
-                              : "围绕一项明确的行动反思"}
+                              : "比较两个或更多选项"}
                           </small>
                         </span>
                         <i>{m === "explore" ? "✧" : "⇌"}</i>
@@ -703,16 +701,79 @@ export default function Zhongbu() {
                   </div>
                 </fieldset>
                 {input.mode === "action" && (
-                  <label className="field">
-                    我正在考虑做什么 <span>必填，保留否定词的原意</span>
-                    <input
-                      required
-                      value={input.action}
-                      maxLength={300}
-                      onChange={(e) => update("action", e.target.value)}
-                      placeholder="例如：去上课；或：不联系对方"
-                    />
-                  </label>
+                  <fieldset className="choice-builder">
+                    <legend>你在考虑哪些选择？</legend>
+                    <p>至少写下两个不同的选项，每一种选择都值得认真看一看。</p>
+                    {(input.options || ["", ""]).map((option, index) => (
+                      <div className="choice-row" key={index}>
+                        <label className="field" htmlFor={`option-${index}`}>
+                          选项 {index + 1}
+                          <input
+                            id={`option-${index}`}
+                            ref={(element) => {
+                              optionRefs.current[index] = element;
+                            }}
+                            required
+                            maxLength={300}
+                            value={option}
+                            placeholder={
+                              index === 0
+                                ? "例如：今天主动联系"
+                                : index === 1
+                                  ? "例如：暂时不联系，等准备好再说"
+                                  : "还有哪一种可能？"
+                            }
+                            onChange={(event) =>
+                              update(
+                                "options",
+                                (input.options || ["", ""]).map(
+                                  (value, item) =>
+                                    item === index ? event.target.value : value,
+                                ),
+                              )
+                            }
+                          />
+                        </label>
+                        {(input.options?.length || 2) > 2 && (
+                          <button
+                            type="button"
+                            className="remove-choice"
+                            aria-label={`删除选项 ${index + 1}`}
+                            onClick={() => {
+                              const next = input.options!.filter(
+                                (_, item) => item !== index,
+                              );
+                              update("options", next);
+                              requestAnimationFrame(() =>
+                                optionRefs.current[
+                                  Math.min(index, next.length - 1)
+                                ]?.focus(),
+                              );
+                            }}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      className="add-choice"
+                      type="button"
+                      disabled={(input.options?.length || 2) >= 10}
+                      onClick={() => {
+                        const next = [...(input.options || ["", ""]), ""];
+                        update("options", next);
+                        requestAnimationFrame(() =>
+                          optionRefs.current[next.length - 1]?.focus(),
+                        );
+                      }}
+                    >
+                      ＋ 添加更多选项
+                    </button>
+                    {(input.options?.length || 2) >= 10 && (
+                      <small>这次最多比较十个选项。</small>
+                    )}
+                  </fieldset>
                 )}
                 <div className="form-row">
                   <label className="field">
@@ -745,25 +806,6 @@ export default function Zhongbu() {
                     />
                   </label>
                 </div>
-                {input.mode === "action" && (
-                  <div className="action-scope">
-                    <label className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={input.everydayOnly}
-                        onChange={(e) =>
-                          update("everydayOnly", e.target.checked)
-                        }
-                      />
-                      这是一项普通日常安排，不涉及医疗、法律、投资或政治决策
-                    </label>
-                    <small>
-                      {ADAPTED_ACTIONS[input.scene]
-                        ? `本场景的首版适配行动：${ADAPTED_ACTIONS[input.scene]!.join("、")}。其他行动只作通用反思。`
-                        : "本场景没有行动倾向规则，只提供象征解释与反思。"}
-                    </small>
-                  </div>
-                )}
                 <details className="time-settings">
                   <summary>
                     问卜时刻与时区 <span>{input.timezone}</span>
@@ -853,16 +895,6 @@ export default function Zhongbu() {
                   周易与梅花为相关体系，不是两份独立科学证据。
                 </p>
                 <div className="options-row">
-                  {input.engines.includes("tarot") && (
-                    <label className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={input.reversals}
-                        onChange={(e) => update("reversals", e.target.checked)}
-                      />
-                      塔罗启用逆位 <small>每张独立 50%</small>
-                    </label>
-                  )}
                   {input.engines.includes("numerology") && (
                     <label className="field birthday-field">
                       出生日期 <span>仅数字命理需要</span>
@@ -907,21 +939,6 @@ export default function Zhongbu() {
                   <p>可以偏爱一家，也可以只认同其中一句。不需要服从多数。</p>
                   <div className="aside-footer">五套体系 / 各自成篇</div>
                 </div>
-                <div className="privacy-note">
-                  <span>⌁</span>
-                  <h3>由你决定，分享到哪里</h3>
-                  <p>
-                    抽取、起卦与基础解读在本地完成。想听更生动的展开时，再点击
-                    DeepSeek 灵感解读。
-                  </p>
-                  <p>
-                    模型解读需要联网，发送范围会提前说明。生日字段不发送，记录由你主动保存到本机。
-                  </p>
-                </div>
-                <div className="small-note">
-                  <span>✦</span>
-                  <p>{DISCLAIMER}</p>
-                </div>
               </aside>
             </div>
           </>
@@ -929,9 +946,8 @@ export default function Zhongbu() {
       </main>
       <footer className="site-footer">
         <span>众卜 · 一个问题，多种视角。</span>
-        <p>{DISCLAIMER}</p>
         <button onClick={() => setPage("library")}>来源与算法约定 ↗</button>
       </footer>
-    </>
+    </div>
   );
 }
