@@ -218,34 +218,25 @@
 .is-playing .reveal-number-orbits {
   animation: reveal-number-turn 1100ms ease-in-out forwards;
 }
-.reveal-number-window {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 1.15em;
-  height: 1em;
-  overflow: hidden;
-  transform: translate(-50%, -50%);
-  color: #1b7483;
-  text-align: center;
+.reveal-number-wheel {
+  transform-origin: 160px 102px;
+}
+.reveal-number-wheel circle {
+  fill: #f4fffc;
+  stroke: #9eced2;
+}
+.reveal-number-wheel text {
+  fill: #1b7483;
+  stroke: none;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(3.6rem, 6vw, 5rem);
-  font-weight: 400;
-  line-height: 1;
-  text-shadow: 1px 2px 0 #ffffffbd;
+  font-size: 17px;
 }
-.reveal-dormant-digit,
-.reveal-digit-strip,
-.reveal-digit-strip > span {
-  display: block;
-  width: 100%;
+.reveal-wheel-hub {
+  fill: #d1ede5;
+  stroke: #49979f;
 }
-.reveal-digit-strip > span {
-  height: 1em;
-  line-height: 1;
-}
-.is-playing .reveal-digit-strip {
-  animation: reveal-digits 990ms steps(8, end) both;
+.is-playing .reveal-number-wheel {
+  animation: reveal-wheel-turn 1100ms cubic-bezier(0.16, 0.7, 0.22, 1) forwards;
 }
 @keyframes reveal-copper-turn {
   0% {
@@ -288,9 +279,9 @@
     transform: rotate(220deg);
   }
 }
-@keyframes reveal-digits {
+@keyframes reveal-wheel-turn {
   to {
-    transform: translateY(-8em);
+    transform: rotate(720deg);
   }
 }
 .motion-paused .engine-reveal *,

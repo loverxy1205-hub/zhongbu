@@ -225,13 +225,6 @@
   box-shadow: inset 0 0 0 5px #fffaf05c;
   touch-action: manipulation;
 }
-.coin-cast-button > svg {
-  display: block;
-  width: 100%;
-  max-width: 340px;
-  height: auto;
-  margin: 0 auto;
-}
 .coin-ritual .coin-cast-button:hover:not(:disabled) {
   border-color: #a87b3e;
   background-color: #fff6df;
@@ -245,23 +238,15 @@
   fill: #e8d7ac6b;
   stroke: #bea36c9c;
 }
-.coin-cast-three {
-  --coin-fill: #e4c27d;
-  --coin-hole: #fff4d9;
-  stroke: #96703b;
+.coin-face-legend {
+  margin: 12px 0 0;
+  color: #8b7048;
+  font-size: 0.69rem;
+  line-height: 1.65;
 }
-.coin-cast-three .coin-face {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.is-rolling .coin-cast-three .coin-face {
-  animation: ritual-six-coins 800ms ease-out both;
-}
-.is-rolling .coin-cast-three > g:nth-child(2) .coin-face {
-  animation-delay: 60ms;
-}
-.is-rolling .coin-cast-three > g:nth-child(3) .coin-face {
-  animation-delay: 120ms;
+.coin-face-legend > span {
+  margin: 0 6px;
+  color: #b39a72;
 }
 .interaction-cta {
   display: inline-flex;
@@ -291,10 +276,13 @@
   gap: 9px;
 }
 .coin-values > span {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  min-width: 43px;
+  min-height: 29px;
+  padding: 3px 7px;
   border: 1px solid #b99659;
   border-radius: 50%;
   color: #815b27;
@@ -302,6 +290,14 @@
   font:
     0.83rem Georgia,
     serif;
+}
+.coin-values > span[data-side="yin"] {
+  color: #796b4b;
+  background: #e7ddc0;
+  border-color: #b4a17b;
+}
+.coin-values > span > small {
+  font: 0.61rem "Microsoft YaHei", sans-serif;
 }
 .coin-values > b {
   margin-left: 3px;
@@ -509,20 +505,6 @@
     opacity: 1;
   }
 }
-@keyframes ritual-six-coins {
-  0% {
-    transform: translateY(0) rotateY(0);
-  }
-  35% {
-    transform: translateY(-21px) rotateY(290deg) rotate(-10deg);
-  }
-  80% {
-    transform: translateY(-7px) rotateY(600deg) rotate(5deg);
-  }
-  100% {
-    transform: translateY(0) rotateY(720deg);
-  }
-}
 @keyframes rune-bag-rustle {
   0%,
   100% {
@@ -581,23 +563,26 @@
     padding: 10px;
   }
   .coin-ritual-layout {
-    grid-template-columns: minmax(0, 1.4fr) minmax(115px, 1fr);
-    gap: 13px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    max-width: 380px;
   }
   .coin-building-lines {
-    padding: 17px 3px;
-    gap: 12px;
+    width: min(100%, 310px);
+    margin: 0 auto 12px;
+    padding: 17px 12px;
+    gap: 10px;
   }
   .coin-building-lines .coin-building-line {
-    grid-template-columns: 25px minmax(30px, 1fr) 18px;
-    gap: 5px;
+    grid-template-columns: 30px minmax(40px, 1fr) 26px;
+    gap: 10px;
   }
   .coin-line-name {
-    font-size: 0.6rem;
+    font-size: 0.67rem;
   }
   .coin-line-value > small {
-    left: 11px;
-    font-size: 0.5rem;
+    left: 15px;
+    font-size: 0.57rem;
   }
   .coin-line-strokes.is-yin {
     gap: 10px;
@@ -606,19 +591,19 @@
     padding-inline: 0;
   }
   .coin-ritual .interaction-cta {
-    padding: 6px 9px;
-    gap: 5px;
-    font-size: 0.68rem;
+    padding: 6px 15px;
+    gap: 14px;
+    font-size: 0.77rem;
   }
   .coin-values {
     gap: 5px;
   }
   .coin-values > span {
-    width: 22px;
-    height: 22px;
+    min-width: 40px;
+    min-height: 29px;
   }
   .coin-latest p {
-    font-size: 0.67rem;
+    font-size: 0.73rem;
   }
 }
 @media (max-width: 440px) {

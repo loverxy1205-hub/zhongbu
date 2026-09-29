@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import type { CardDraw } from "../types";
 import { TAROT } from "../data/tarot";
-import { TarotArt, TarotOrbit } from "./EngineArt";
+import { TarotArt } from "./EngineArt";
 import "../interaction-v2.css";
+import "../deck-inplace.css";
 
 const POSITIONS = ["现状", "阻力", "提示"] as const;
 
@@ -84,29 +85,14 @@ export function TarotDeck({
               data-testid={`tarot-chosen-${index}`}
               data-revealed={Boolean(draw)}
             >
-              <span className="position">
-                0{index + 1} / {position}
-              </span>
+              <span className="position">{position}</span>
               {draw && card ? (
                 <>
-                  <div
-                    className={`deck-result-face tarot-tile ${draw.reversed ? "reversed" : ""}`}
-                  >
-                    <TarotOrbit />
-                    <div className="arcana-art" aria-hidden="true">
-                      <TarotArt cardId={draw.id} />
-                    </div>
-                    <span className="card-number">{card.english}</span>
-                  </div>
                   <strong>{card.name}</strong>
                   <small>{draw.reversed ? "逆位" : "正位"}</small>
                 </>
               ) : (
                 <>
-                  <div className="deck-empty-place" aria-hidden="true">
-                    <span>✧</span>
-                    <i>{index + 1}</i>
-                  </div>
                   <strong>
                     {index === chosen.length ? "等待你的选择" : "留一张给这里"}
                   </strong>
@@ -127,9 +113,12 @@ export function TarotDeck({
         aria-label={`${deck.length} 张塔罗牌，选择三张`}
         data-testid="tarot-deck-pool"
       >
-        {deck.map((_, slot) => {
+        {deck.map((draw, slot) => {
           const order = chosen.indexOf(slot);
           const selected = order !== -1;
+          const card = selected
+            ? TAROT.find((entry) => entry.id === draw.id)
+            : undefined;
           return (
             <button
               key={slot}
@@ -142,9 +131,14 @@ export function TarotDeck({
               data-selected={selected}
               disabled={selected || complete}
               aria-label={
-                selected
-                  ? `第 ${slot + 1} 张牌，已选为${POSITIONS[order]}`
+                selected && card
+                  ? `${POSITIONS[order]}：${card.name}，${draw.reversed ? "逆位" : "正位"}，已选择`
                   : `选择第 ${slot + 1} 张牌，作为${POSITIONS[chosen.length] ?? "已完成的牌阵"}`
+              }
+              title={
+                selected && card
+                  ? `${POSITIONS[order]} · ${card.name} · ${draw.reversed ? "逆位" : "正位"}`
+                  : undefined
               }
               onClick={() => pick(slot)}
               onKeyDown={(event) => {
@@ -169,11 +163,21 @@ export function TarotDeck({
                 buttons.current[next]?.focus({ preventScroll: false });
               }}
             >
-              <DeckBack />
-              {selected && (
-                <span className="deck-picked-mark" aria-hidden="true">
-                  {order + 1}
+              {selected && card ? (
+                <span className="deck-inplace-face" aria-hidden="true">
+                  <span className="deck-face-position">{POSITIONS[order]}</span>
+                  <span
+                    className={`deck-inplace-art${draw.reversed ? " is-reversed" : ""}`}
+                  >
+                    <TarotArt cardId={draw.id} />
+                  </span>
+                  <span className="deck-face-name">{card.name}</span>
+                  <span className="deck-face-orientation">
+                    {draw.reversed ? "逆位" : "正位"}
+                  </span>
                 </span>
+              ) : (
+                <DeckBack />
               )}
             </button>
           );

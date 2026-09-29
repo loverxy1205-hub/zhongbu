@@ -4,6 +4,21 @@ import type { EngineId } from "../../src/types";
 
 type RevealOptions = { skipAnimation?: boolean };
 
+// Deterministic browser entropy for tests that must exercise both coin faces
+// and both card orientations in one run; no rejection-sampling outliers.
+export async function installAlternatingRandom(page: Page) {
+  await page.addInitScript(() => {
+    let word = 0;
+    Object.defineProperty(crypto, "getRandomValues", {
+      value: (buffer: Uint32Array<ArrayBuffer>) => {
+        for (let index = 0; index < buffer.length; index++)
+          buffer[index] = word++ % 2;
+        return buffer;
+      },
+    });
+  });
+}
+
 export async function revealTarot(page: Page) {
   await showEngine(page, "tarot");
   if (await page.getByTestId("tarot-deck").count()) {
@@ -48,7 +63,7 @@ export async function drawRunes(page: Page, skipAnimation = true) {
       name: "跳过取石动画",
       exact: true,
     });
-    if (skipAnimation && (await skip.isVisible())) await skip.click();
+    if (skipAnimation && (await skip.isVisible())) await skip.press("Enter");
     await expect(page.getByTestId("rune-bag")).toHaveAttribute(
       "data-drawn-count",
       String(count + 1),
@@ -75,7 +90,8 @@ export async function revealEngine(
           name: `跳过第 ${index + 1} 枚卢恩揭晓动画`,
           exact: true,
         });
-        if (skipAnimation && (await skip.isVisible())) await skip.click();
+        if (skipAnimation && (await skip.isVisible()))
+          await skip.press("Enter");
       }
       await expect(slot).toHaveAttribute("data-revealed", "true");
     }
@@ -92,7 +108,7 @@ export async function revealEngine(
         name: "跳过本轮动画",
         exact: true,
       });
-      if (skipAnimation && (await skip.isVisible())) await skip.click();
+      if (skipAnimation && (await skip.isVisible())) await skip.press("Enter");
       await expect(page.getByTestId("coin-ritual")).toHaveAttribute(
         "data-rounds",
         String(++count),
@@ -104,7 +120,7 @@ export async function revealEngine(
       name: "跳过揭晓动画",
       exact: true,
     });
-    if (skipAnimation && (await skip.isVisible())) await skip.click();
+    if (skipAnimation && (await skip.isVisible())) await skip.press("Enter");
   }
   await expect(card.locator(".result-reading")).toBeVisible();
 }

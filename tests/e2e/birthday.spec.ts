@@ -94,6 +94,8 @@ test("birthday matrix retains repeated digits and interactive cell details never
   await page.getByRole("button", { name: "开启这次探索" }).click();
   await expect(page.getByTestId("result-tarot")).toBeVisible();
   await page.getByTestId("chapter-numerology").click();
+  await expect(page.getByTestId("number-matrix")).toHaveCount(0);
+  await page.getByTestId("reveal-numerology").click();
   const original = await current(page);
   expect(
     original.reading.results.find((r) => r.engine === "numerology")?.raw?.kind,

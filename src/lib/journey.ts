@@ -29,7 +29,7 @@ export function createJourney(
     runeRevealed: [],
     coinRounds: 0,
     runeDrawn: 0,
-    engineRevealed: ["meihua", "numerology"],
+    engineRevealed: [],
   };
 }
 

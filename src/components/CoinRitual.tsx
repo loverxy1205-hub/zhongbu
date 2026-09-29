@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { IChingRaw } from "../types";
-import { Coin } from "./EngineArt";
+import { CoinFace } from "./CoinFace";
 import "../interaction-v2.css";
 
 const LINE_NAMES = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"];
 const VALUE_NAMES = { 6: "老阴 · 动", 7: "少阳", 8: "少阴", 9: "老阳 · 动" };
+// 1450ms flight/bounces + the third coin's 170ms stagger + a short settled beat.
+const COIN_TOSS_DURATION_MS = 1670;
 
 /** Six user-paced reveals of existing coin rounds, in bottom-to-top order. */
 export function CoinRitual({
@@ -68,10 +70,11 @@ export function CoinRitual({
       return;
     }
     setRolling(count);
-    timer.current = window.setTimeout(finish, 950);
+    timer.current = window.setTimeout(finish, COIN_TOSS_DURATION_MS);
   }
 
   const latest = count ? count - 1 : null;
+  const displayedRound = rolling ?? latest;
   return (
     <div
       className={`coin-ritual${rolling !== null ? " is-rolling" : ""}${motionPaused ? " interaction-motion-paused" : ""}`}
@@ -100,40 +103,51 @@ export function CoinRitual({
             disabled={rolling !== null || count === 6}
             onClick={begin}
           >
-            <svg
-              viewBox="0 0 300 205"
-              aria-hidden="true"
-              focusable="false"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.2"
-            >
-              <ellipse
-                cx="150"
-                cy="142"
-                rx="125"
-                ry="44"
-                className="coin-casting-mat"
-              />
-              <ellipse cx="150" cy="142" rx="113" ry="35" opacity=".2" />
-              <circle
-                cx="151"
-                cy="84"
-                r="66"
-                strokeDasharray="1 6"
-                opacity=".2"
-              />
-              <path
-                d="M22 56h34c19 0 14-19 3-14M234 73h40c19 0 14-20 1-15"
-                opacity=".3"
-              />
-              <g className="coin-cast-three">
-                <Coin x={87} y={107} r={29} />
-                <Coin x={148} y={78} r={31} />
-                <Coin x={211} y={117} r={29} />
-              </g>
-              <path d="m128 168 22-8 22 8-22 8Z" opacity=".25" />
-            </svg>
+            <span className="coin-toss-scene" aria-hidden="true">
+              <svg
+                viewBox="0 0 300 245"
+                focusable="false"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.2"
+              >
+                <ellipse
+                  cx="150"
+                  cy="189"
+                  rx="130"
+                  ry="43"
+                  className="coin-casting-mat"
+                />
+                <ellipse cx="150" cy="189" rx="117" ry="34" opacity=".2" />
+                <circle
+                  cx="151"
+                  cy="112"
+                  r="78"
+                  strokeDasharray="1 6"
+                  opacity=".2"
+                />
+                <path
+                  d="M22 66h34c19 0 14-19 3-14M234 83h40c19 0 14-20 1-15"
+                  opacity=".3"
+                />
+                <path d="m128 213 22-8 22 8-22 8Z" opacity=".25" />
+              </svg>
+              {[0, 1, 2].map((index) => (
+                <CoinFace
+                  key={`${displayedRound ?? "preview"}-${index}`}
+                  index={index}
+                  value={
+                    displayedRound === null
+                      ? undefined
+                      : raw.coins[displayedRound][index]
+                  }
+                  previousValue={
+                    latest === null ? undefined : raw.coins[latest][index]
+                  }
+                  rolling={rolling !== null}
+                />
+              ))}
+            </span>
             <span className="interaction-cta">
               {count === 6
                 ? "六次已完成"
@@ -143,6 +157,9 @@ export function CoinRitual({
               <span aria-hidden="true">↗</span>
             </span>
           </button>
+          <p className="coin-face-legend">
+            乾隆通宝 · 阳（3）<span aria-hidden="true"> / </span>无字 · 阴（2）
+          </p>
           <div
             className="coin-latest"
             role="status"
@@ -154,7 +171,17 @@ export function CoinRitual({
               <>
                 <div className="coin-values">
                   {raw.coins[latest].map((value, index) => (
-                    <span key={index}>{value}</span>
+                    <span
+                      key={index}
+                      role="img"
+                      data-side={value === 3 ? "yang" : "yin"}
+                      aria-label={`第 ${index + 1} 枚，${value === 3 ? "阳面，乾隆通宝" : "阴面，无字"}，${value} 点`}
+                    >
+                      <small aria-hidden="true">
+                        {value === 3 ? "阳" : "阴"}
+                      </small>
+                      <span aria-hidden="true">{value}</span>
+                    </span>
                   ))}
                   <b>= {raw.values[latest]}</b>
                 </div>

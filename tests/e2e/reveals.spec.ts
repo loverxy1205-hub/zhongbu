@@ -4,6 +4,7 @@ import { RUNES } from "../../src/data/runes";
 import type { SavedReading } from "../../src/types";
 import {
   drawRunes,
+  installAlternatingRandom,
   revealAll,
   revealEngine,
   revealTarot,
@@ -22,6 +23,32 @@ const runningAnimations = (locator: Locator) =>
         .getAnimations({ subtree: true })
         .filter((animation) => animation.playState === "running").length,
   );
+async function expectCoinFaces(page: Page, values: readonly number[]) {
+  for (const [index, value] of values.entries()) {
+    const face = page.getByTestId(`coin-face-${index}`);
+    await expect(face).toHaveAttribute("data-value", String(value));
+    await expect(face).toHaveAttribute(
+      "data-side",
+      value === 3 ? "yang" : "yin",
+    );
+    const normal = await face
+      .locator(".coin-spinner")
+      .evaluate(
+        (element) =>
+          new DOMMatrixReadOnly(getComputedStyle(element).transform).m33,
+      );
+    // The coins rest at a slight decorative tilt; the normal still faces
+    // forward for yang and backward for yin instead of remaining edge-on.
+    expect(Math.sign(normal)).toBe(value === 3 ? 1 : -1);
+    expect(Math.abs(normal)).toBeGreaterThan(0.9);
+    await expect(
+      page
+        .getByTestId("coin-round-result")
+        .locator(`.coin-values > span`)
+        .nth(index),
+    ).toHaveAttribute("data-side", value === 3 ? "yang" : "yin");
+  }
+}
 async function start(
   page: Page,
   reducedMotion: "reduce" | "no-preference" = "reduce",
@@ -34,7 +61,7 @@ async function start(
   await showAll(page);
 }
 
-test("date calculations display immediately while interactive engines individually unlock their own AI and exports", async ({
+test("all engines independently reveal their frozen results before unlocking their own AI and exports", async ({
   page,
 }) => {
   await start(page);
@@ -44,9 +71,9 @@ test("date calculations display immediately while interactive engines individual
   for (const engine of ["meihua", "numerology"]) {
     await expect(
       page.getByTestId(`result-${engine}`).locator(".result-reading"),
-    ).toBeVisible();
-    await expect(page.getByTestId(`ai-${engine}`)).toBeVisible();
-    await expect(page.getByTestId(`reveal-${engine}`)).toHaveCount(0);
+    ).toHaveCount(0);
+    await expect(page.getByTestId(`ai-${engine}`)).toHaveCount(0);
+    await expect(page.getByTestId(`reveal-${engine}`)).toBeVisible();
   }
   expect(
     before.reading.results.find((r) => r.engine === "numerology")?.raw?.kind,
@@ -67,6 +94,14 @@ test("date calculations display immediately while interactive engines individual
     page.getByRole("button", { name: "规则汇总", exact: true }),
   ).toBeDisabled();
   expect((await current(page)).reading).toEqual(before.reading);
+  await page.getByTestId("reveal-meihua").press("Enter");
+  await expect(
+    page.getByTestId("result-meihua").locator(".result-reading"),
+  ).toBeVisible({ timeout: 750 });
+  await expect(page.getByTestId("ai-meihua")).toBeVisible();
+  await expect(page.getByTestId("ai-numerology")).toHaveCount(0);
+  await page.getByTestId("reveal-numerology").press("Space");
+  await expect(page.getByTestId("number-matrix")).toBeVisible({ timeout: 750 });
   await revealTarot(page);
   for (const name of ["JSON", "Markdown", "规则汇总", "我的偏好汇总"])
     await expect(page.getByRole("button", { name, exact: true })).toBeEnabled();
@@ -75,16 +110,133 @@ test("date calculations display immediately while interactive engines individual
   ).toEqual(before.reading.results.filter((r) => r.engine !== "tarot"));
 });
 
+for (const engine of ["meihua", "numerology"] as const) {
+  for (const completion of ["natural", "skip"] as const) {
+    test(`${engine} ${completion} completion reveals only its frozen result and restores progress`, async ({
+      page,
+    }) => {
+      await start(page, "no-preference");
+      const original = (await current(page)).reading;
+      const card = page.getByTestId(`result-${engine}`);
+      const scene = page.getByTestId(`engine-reveal-${engine}`);
+      await expect(scene).toHaveAttribute("data-state", "ready");
+      expect(await runningAnimations(scene)).toBe(0);
+      if (engine === "numerology") {
+        await expect(page.getByTestId("number-matrix")).toHaveCount(0);
+        await expect(scene.locator(".reveal-number-wheel text")).toHaveText([
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+        ]);
+      }
+      await page.getByTestId(`reveal-${engine}`).press("Enter");
+      await expect(scene).toHaveAttribute("data-state", "playing");
+      await expect(page.getByTestId(`reveal-${engine}`)).toHaveAttribute(
+        "aria-busy",
+        "true",
+      );
+      await expect(page.getByTestId(`reveal-${engine}`)).toBeDisabled();
+      await page.getByTestId(`reveal-${engine}`).dispatchEvent("click");
+      expect(await runningAnimations(scene)).toBeGreaterThan(0);
+      await expect(card.locator(".result-reading")).toHaveCount(0);
+      await expect(page.getByTestId(`ai-${engine}`)).toHaveCount(0);
+      if (completion === "skip")
+        await card
+          .getByRole("button", { name: "跳过揭晓动画", exact: true })
+          .press("Enter");
+      await expect(card.locator(".result-reading")).toBeVisible();
+      await expect(page.getByTestId(`ai-${engine}`)).toBeVisible();
+      expect((await current(page)).engineRevealed).toEqual([engine]);
+      expect((await current(page)).reading).toEqual(original);
+      await page.reload();
+      await showAll(page);
+      await expect(page.getByTestId(`reveal-${engine}`)).toHaveCount(0);
+      await expect(card.locator(".result-reading")).toBeVisible();
+      expect((await current(page)).reading).toEqual(original);
+    });
+  }
+}
+
+test("pausing simultaneous plum and number reveals preserves both completions without recalculating", async ({
+  page,
+}) => {
+  await start(page, "no-preference");
+  const original = (await current(page)).reading;
+  await page.evaluate(() => {
+    for (const engine of ["meihua", "numerology"])
+      (
+        document.querySelector(
+          `[data-testid="reveal-${engine}"]`,
+        ) as HTMLButtonElement
+      ).click();
+  });
+  for (const engine of ["meihua", "numerology"])
+    await expect(page.getByTestId(`engine-reveal-${engine}`)).toHaveAttribute(
+      "data-state",
+      "playing",
+    );
+  await page.getByRole("button", { name: "暂停动态效果", exact: true }).click();
+  for (const engine of ["meihua", "numerology"])
+    await expect(
+      page.getByTestId(`result-${engine}`).locator(".result-reading"),
+    ).toBeVisible({ timeout: 750 });
+  expect((await current(page)).engineRevealed?.toSorted()).toEqual([
+    "meihua",
+    "numerology",
+  ]);
+  expect((await current(page)).coinRounds).toBe(0);
+  expect((await current(page)).runeDrawn).toBe(0);
+  expect((await current(page)).tarotPicked).toEqual([]);
+  expect((await current(page)).reading).toEqual(original);
+  await expect
+    .poll(() => runningAnimations(page.locator(".app-shell")))
+    .toBe(0);
+  await page.reload();
+  await showAll(page);
+  for (const engine of ["meihua", "numerology"])
+    await expect(page.getByTestId(`reveal-${engine}`)).toHaveCount(0);
+  expect((await current(page)).reading).toEqual(original);
+});
+
 test("six deliberate coin rounds reveal actual values bottom to top and skip advances only one round", async ({
   page,
 }) => {
+  await installAlternatingRandom(page);
   await start(page, "no-preference");
   const original = (await current(page)).reading;
   const raw = original.results.find((r) => r.engine === "iching")?.raw;
   if (raw?.kind !== "iching") throw Error("Expected coin raw");
   const card = page.getByTestId("result-iching");
   const scene = page.getByTestId("coin-ritual");
+  expect(new Set(raw.coins.flat()).size).toBe(2);
   expect(await runningAnimations(scene)).toBe(0);
+  await expect(card.locator(".coin-face-legend")).toContainText("阳（3）");
+  await expect(card.locator(".coin-face-legend")).toContainText("阴（2）");
+  for (let index = 0; index < 3; index++) {
+    const face = page.getByTestId(`coin-face-${index}`);
+    await expect(face).toHaveAttribute("data-side", "preview");
+    expect(await face.getAttribute("data-value")).toBeNull();
+    expect(
+      (
+        await face.locator('[data-coin-face="yang"] text').allTextContents()
+      ).join(""),
+    ).toBe("乾隆通宝");
+    await expect(face.locator('[data-coin-face="yin"] text')).toHaveCount(0);
+    await expect(face.locator('[data-coin-face="yang"]')).toHaveCSS(
+      "backface-visibility",
+      "hidden",
+    );
+    await expect(face.locator('[data-coin-face="yin"]')).toHaveCSS(
+      "backface-visibility",
+      "hidden",
+    );
+  }
   for (let index = 0; index < 6; index++) {
     const trigger = page.getByTestId("coin-round-trigger");
     await trigger.press(index % 2 ? "Space" : "Enter");
@@ -96,14 +248,24 @@ test("six deliberate coin rounds reveal actual values bottom to top and skip adv
       "false",
     );
     expect(await runningAnimations(scene)).toBeGreaterThan(0);
-    const skip = card.getByRole("button", {
-      name: "跳过本轮动画",
-      exact: true,
-    });
-    await expect(skip).toBeVisible();
-    // Native keyboard activation avoids racing pointer stabilization against
-    // this short-lived button's 950 ms automatic completion on mobile.
-    await skip.press("Enter");
+    for (let coin = 0; coin < 3; coin++) {
+      await expect(page.getByTestId(`coin-face-${coin}`)).toHaveAttribute(
+        "data-side",
+        "tossing",
+      );
+      expect(
+        await page.getByTestId(`coin-face-${coin}`).getAttribute("data-value"),
+      ).toBeNull();
+    }
+    if (index > 0) {
+      const skip = card.getByRole("button", {
+        name: "跳过本轮动画",
+        exact: true,
+      });
+      await expect(skip).toBeVisible();
+      // Keyboard activation does not wait for a transient button to stop moving.
+      await skip.press("Enter");
+    }
     await expect(scene).toHaveAttribute("data-rounds", String(index + 1));
     await expect(page.getByTestId(`coin-line-${index}`)).toHaveAttribute(
       "data-revealed",
@@ -116,6 +278,7 @@ test("six deliberate coin rounds reveal actual values bottom to top and skip adv
     await expect(page.getByTestId("coin-round-result")).toContainText(
       `= ${raw.values[index]}`,
     );
+    await expectCoinFaces(page, raw.coins[index]);
     if (index < 5) {
       await expect(page.getByTestId(`coin-line-${index + 1}`)).toHaveAttribute(
         "data-revealed",
@@ -129,6 +292,14 @@ test("six deliberate coin rounds reveal actual values bottom to top and skip adv
   await expect(page.getByTestId("coin-round-trigger")).toBeDisabled();
   await expect(card.locator(".result-reading")).toBeVisible();
   await expect(page.getByTestId("ai-iching")).toBeVisible();
+  await page.reload();
+  await showAll(page);
+  await expect(page.getByTestId("coin-ritual")).toHaveAttribute(
+    "data-rounds",
+    "6",
+  );
+  await expectCoinFaces(page, raw.coins[5]);
+  expect((await current(page)).reading).toEqual(original);
 });
 
 test("runes leave the bag in three steps then pry open individually without exposing symbols early", async ({
@@ -155,7 +326,7 @@ test("runes leave the bag in three steps then pry open individually without expo
     ).toBeGreaterThan(0);
     await card
       .getByRole("button", { name: "跳过取石动画", exact: true })
-      .click();
+      .press("Enter");
     await expect(page.getByTestId("rune-bag")).toHaveAttribute(
       "data-drawn-count",
       String(index + 1),
@@ -213,6 +384,11 @@ test("pausing concurrent coin and bag animations retains both steps and only ope
     "data-rounds",
     "1",
   );
+  const coins = original.results.find(
+    (result) => result.engine === "iching",
+  )?.raw;
+  if (coins?.kind !== "iching") throw Error("Expected coin raw");
+  await expectCoinFaces(page, coins.coins[0]);
   await expect(page.getByTestId("rune-bag")).toHaveAttribute(
     "data-drawn-count",
     "1",

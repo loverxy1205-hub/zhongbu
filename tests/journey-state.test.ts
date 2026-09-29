@@ -100,11 +100,9 @@ describe("complete committed deck and sequential rituals", () => {
     expect(calls()).toBe(n);
     expect(savedSchema.safeParse(next).success).toBe(true);
   });
-  it("draws three stones before allowing any carving reveal; timed engines start visible", () => {
+  it("draws three stones before allowing any carving reveal", () => {
     const { saved } = setup();
     let next = saved;
-    expect(isEngineRevealed(next, "meihua")).toBe(true);
-    expect(isEngineRevealed(next, "numerology")).toBe(true);
     expect(advanceReveal(next, "runes", 0)).toBe(next);
     expect(drawRuneStone(next, 2)).toBe(next);
     for (let i = 0; i < 3; i++) next = drawRuneStone(next, i);
@@ -112,5 +110,33 @@ describe("complete committed deck and sequential rituals", () => {
     for (let i = 0; i < 3; i++) next = advanceReveal(next, "runes", i);
     expect(isEngineRevealed(next, "runes")).toBe(true);
     expect(next.reading).toBe(saved.reading);
+  });
+  it("computes timed and birthday results once but reveals them only after their separate rituals", () => {
+    const { saved, calls } = setup();
+    const n = calls();
+    for (const engine of ["meihua", "numerology"] as const) {
+      expect(
+        saved.reading.results.find((r) => r.engine === engine)?.status,
+      ).toBe("ok");
+      expect(isEngineRevealed(saved, engine)).toBe(false);
+      const opened = advanceReveal(saved, engine);
+      expect(isEngineRevealed(opened, engine)).toBe(true);
+      expect(opened.reading).toBe(saved.reading);
+      expect(advanceReveal(opened, engine)).toBe(opened);
+      expect(
+        savedSchema.parse(JSON.parse(JSON.stringify(opened))).engineRevealed,
+      ).toContain(engine);
+      const old = {
+        ...saved,
+        engineRevealed: ["meihua", "numerology"] as const,
+      };
+      expect(
+        isEngineRevealed(
+          { ...old, engineRevealed: [...old.engineRevealed] },
+          engine,
+        ),
+      ).toBe(true);
+    }
+    expect(calls()).toBe(n);
   });
 });

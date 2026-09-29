@@ -127,9 +127,7 @@ export function RawVisual({
               data-testid={`tarot-slot-${i}`}
               data-revealed={revealed}
             >
-              <span className="position">
-                0{i + 1} / {d.position}
-              </span>
+              <span className="position">{d.position}</span>
               <button
                 type="button"
                 className={`tarot-reveal ${revealed ? "is-revealed" : "is-covered"}`}

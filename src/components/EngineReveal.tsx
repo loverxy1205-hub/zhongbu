@@ -21,20 +21,14 @@ const REVEAL_COPY: Record<
     playing: "梅花轻落，眼前的风景将启…",
   },
   numerology: {
-    action: "唤醒数字",
-    invitation: "循着数字，遇见今日节律",
-    waiting: "轻触中央，让数字流转起来。",
-    playing: "数字流转，主题即将呈现…",
+    action: "转动数字轮盘",
+    invitation: "转动九数，展开你的图案",
+    waiting: "轻触轮盘，让九个数字沿星轨转动。",
+    playing: "轮盘旋转，数字图案即将展开…",
   },
 };
 
-function RevealArtwork({
-  engine,
-  playing,
-}: {
-  engine: RevealEngine;
-  playing: boolean;
-}) {
+function RevealArtwork({ engine }: { engine: RevealEngine }) {
   return (
     <span className="reveal-artwork" aria-hidden="true">
       <svg
@@ -174,23 +168,36 @@ function RevealArtwork({
               <path d="M217 161v11m-5.5-5.5h11M87 38v8m-4-4h8" />
             </g>
             <path d="m160 32 61 105H99ZM160 172l-61-105h122Z" opacity=".17" />
+            <g className="reveal-number-wheel">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit, index) => {
+                const angle = ((index * 40 - 90) * Math.PI) / 180;
+                const x = 160 + 57 * Math.cos(angle);
+                const y = 102 + 57 * Math.sin(angle);
+                return (
+                  <g key={digit}>
+                    <circle cx={x} cy={y} r="13" />
+                    <text
+                      x={x}
+                      y={y}
+                      dominantBaseline="central"
+                      textAnchor="middle"
+                    >
+                      {digit}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+            <circle cx="160" cy="102" r="22" className="reveal-wheel-hub" />
+            <path
+              d="m160 88 3.5 10.5L174 102l-10.5 3.5L160 116l-3.5-10.5L146 102l10.5-3.5Z"
+              fill="currentColor"
+              fillOpacity=".35"
+            />
             <path d="M34 104h8m236 0h8M160 15v8m0 159v8" opacity=".35" />
           </>
         )}
       </svg>
-      {engine === "numerology" && (
-        <span className="reveal-number-window">
-          {playing ? (
-            <span className="reveal-digit-strip">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
-                <span key={digit}>{digit}</span>
-              ))}
-            </span>
-          ) : (
-            <span className="reveal-dormant-digit">0</span>
-          )}
-        </span>
-      )}
     </span>
   );
 }
@@ -272,7 +279,7 @@ export function EngineReveal({
         onClick={begin}
       >
         <span className="reveal-invitation">{copy.invitation}</span>
-        <RevealArtwork engine={engine} playing={playing} />
+        <RevealArtwork engine={engine} />
         <span className="reveal-action">
           {copy.action}
           <span aria-hidden="true">↗</span>

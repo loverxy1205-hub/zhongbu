@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { revealAll } from "./helpers";
+import { revealAll, showAll } from "./helpers";
 
 async function audit(page: Page) {
   const audit = await new AxeBuilder({ page })
@@ -38,6 +38,7 @@ test("homepage, concealed and revealed results pass automated WCAG A/AA accessib
   await expect(page.getByTestId("ritual-transition")).toBeVisible();
   await page.getByRole("button", { name: "跳过动画", exact: true }).click();
   await expect(page.getByTestId("result-tarot")).toBeVisible();
+  await showAll(page);
   // Audit stable views after finite entrance and reveal animations finish.
   await settleResults(page);
   await audit(page);

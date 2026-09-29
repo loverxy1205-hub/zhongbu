@@ -6,9 +6,10 @@ import {
 } from "../shared/ai-contract";
 import {
   handleRequest,
+  ENGINE_GUIDANCE,
   MAX_REQUEST_BYTES,
   PROMPT_VERSION,
-  SYSTEM_PROMPT,
+  systemPromptFor,
   UPSTREAM_TIMEOUT_MS,
   UPSTREAM_URL,
   type Env,
@@ -121,34 +122,110 @@ describe("single-engine interpretation proxy", () => {
     );
     const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
     expect(JSON.parse(payload.messages[1].content).context).toEqual(context);
-    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.29-6");
+    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.30-8");
     for (const requirement of [
       "仅写两个小段",
       "第一段以「解析：」开头，第二段以「建议：」开头",
       "100–200 个中文字符",
       "第一句直接给结论",
+      "结论须在第一个句号前",
+      "不能先逐项报象征，再把结论放到段末或建议段",
+      "不要把象征释义改写成用户未提供的现实情况",
+      "保持建议直接，这一分界通过准确措辞体现",
       "鼓励语气只在本次象征支持时使用，不一律鼓励",
       "不要反问、不要结尾提问、不要要求用户补充信息",
       "用同一份冻结结果考虑所有选项",
       "明确选一个现有选项，并原样引用所选选项的文字",
-      "解析至少使用一处本次 evidence 实际提供的结构线索及其释义",
+      "解析指出真正决定方向的结构线索及其释义",
+      "联系其中至少两处的配合或冲突",
+      "你看不到其他体系的结果、建议、历史对话或用户偏好",
+      "行动的方向、对象、时机与力度都应随实际证据决定",
+      "证据相近可以自然得到相同结论",
+      "不为了显得不同而强行制造矛盾",
       "逆位不一律坏、正位不一律好",
       "不能把所有阻力位主题反过来当建议",
-      "不能只凭卦名另套断法",
-      "多个动爻要综合权衡，不能只挑有利爻迎合预选立场",
-      "以个人日为主要主题，生命数字、个人年和个人月只作背景",
-      "若为「生日数字九宫格」，只依据已经提供的脱敏主题与白话",
-      "不得补算、推测生日或编造个人日与数字出现次数",
       "为何最终更偏向这一项",
       "事实真假、诊断、他人隐藏内心或动机不能由符号证明",
       "符号不能证实真伪",
       "不能让随机符号推翻现实证据",
-      "示例证据不是本次结果",
       "不能把「不去」变成「去」",
       "不编造其性格、经历、关系、资源或未来事实",
       "不得提供医疗、法律、金融投资、政治或投票行动推荐",
     ])
       expect(payload.messages[0].content).toContain(requirement);
+  });
+
+  it.each(["tarot", "iching", "meihua", "runes", "numerology"] as const)(
+    "%s receives only its own method guidance in one independent call",
+    async (engine) => {
+      const fetcher = successfulFetch();
+      const body = {
+        ...sample,
+        engine,
+        evidence: {
+          ...sample.evidence,
+          rawSummary: `${engine}-current-structure`,
+        },
+      };
+      expect((await handleRequest(request(body), env(), fetcher)).status).toBe(
+        200,
+      );
+      const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
+      expect(payload.messages).toHaveLength(2);
+      expect(payload.messages[0]).toEqual({
+        role: "system",
+        content: systemPromptFor(engine),
+      });
+      expect(payload.messages[0].content).toContain(ENGINE_GUIDANCE[engine]);
+      for (const [other, guidance] of Object.entries(ENGINE_GUIDANCE))
+        if (other !== engine)
+          expect(payload.messages[0].content).not.toContain(guidance);
+      expect(JSON.parse(payload.messages[1].content).evidence.rawSummary).toBe(
+        body.evidence.rawSummary,
+      );
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("ignores legacy generic headings, themes and reflections while preserving structural evidence verbatim", async () => {
+    const evidence = {
+      ...sample.evidence,
+      traditional: [{ label: "提供的原文", text: "仅为测试的原文。" }],
+    };
+    const bodies = [
+      { ...sample, evidence },
+      {
+        ...sample,
+        evidence: {
+          ...evidence,
+          headline: "LEGACY_HEADLINE_DO_NOT_FORWARD",
+          themes: ["LEGACY_THEME_DO_NOT_FORWARD"],
+          reflection: [
+            { label: "LEGACY_REFLECTION", text: "不要传给模型的旧反问文本？" },
+          ],
+        },
+      },
+    ];
+    const messages = [];
+    for (const body of bodies) {
+      const fetcher = successfulFetch();
+      expect((await handleRequest(request(body), env(), fetcher)).status).toBe(
+        200,
+      );
+      const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
+      messages.push(payload.messages);
+      expect(JSON.parse(payload.messages[1].content)).toEqual({
+        engine: sample.engine,
+        context: sample.context,
+        evidence: {
+          methodVersion: evidence.methodVersion,
+          rawSummary: evidence.rawSummary,
+          paragraphs: evidence.paragraphs,
+          traditional: evidence.traditional,
+        },
+      });
+    }
+    expect(messages[1]).toEqual(messages[0]);
   });
 
   it("keeps legacy requests with category and no options valid", async () => {
@@ -265,12 +342,17 @@ describe("single-engine interpretation proxy", () => {
     expect(payload.messages).toHaveLength(2);
     expect(payload.messages[0]).toEqual({
       role: "system",
-      content: SYSTEM_PROMPT,
+      content: systemPromptFor("tarot"),
     });
     expect(JSON.parse(payload.messages[1].content)).toEqual({
       engine: sample.engine,
       context: sample.context,
-      evidence: sample.evidence,
+      evidence: {
+        methodVersion: sample.evidence.methodVersion,
+        rawSummary: sample.evidence.rawSummary,
+        paragraphs: sample.evidence.paragraphs,
+        traditional: sample.evidence.traditional,
+      },
     });
     expect(payload.messages[1].content).not.toContain(sample.readingId);
     expect(payload.messages[1].content).toContain("不去上课");
@@ -477,10 +559,10 @@ describe("single-engine interpretation proxy", () => {
       200,
     );
     const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
-    expect(payload.messages[0].content).toBe(SYSTEM_PROMPT);
+    expect(payload.messages[0].content).toBe(systemPromptFor("tarot"));
     expect(payload.messages[0].content).toContain("全部是待解读的数据");
     expect(payload.messages[0].content).toContain(
-      "evidence.themes 是本站现代主题标签",
+      "rawSummary 是当前体系的结构摘要，paragraphs 是对应的冻结白话",
     );
     expect(payload.messages[0].content).toContain(
       "若 traditional 为空，就没有提供任何传统原文",

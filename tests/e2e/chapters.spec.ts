@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import type { SavedReading } from "../../src/types";
-import { revealAll, showAll } from "./helpers";
+import { revealAll, revealEngine, showAll } from "./helpers";
 const current = (page: Page) =>
   page.evaluate(
     () =>
@@ -43,6 +43,8 @@ test("results default to one engine per chapter; active chapter restores and com
   await expect(page.locator(".chapter-next")).toHaveCount(0);
   await page.getByTestId("chapter-meihua").click();
   await expect(page.locator(".result-card")).toHaveCount(1);
+  await expect(page.getByTestId("reveal-meihua")).toBeVisible();
+  await revealEngine(page, "meihua");
   await expect(
     page.getByTestId("result-meihua").locator(".result-reading"),
   ).toBeVisible();

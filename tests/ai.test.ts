@@ -5,9 +5,10 @@ import {
   requestAi,
 } from "../src/lib/ai";
 import { createReading } from "../src/engines/reading";
+import { interpret } from "../src/rules/interpret";
 import { defaultPreferences } from "../src/lib/storage";
 import type { AiResponse } from "../shared/ai-contract";
-import type { EngineId, Input } from "../src/types";
+import type { EngineId, Input, TarotRaw, RuneRaw } from "../src/types";
 
 const engines: EngineId[] = [
   "tarot",
@@ -62,6 +63,133 @@ const response: AiResponse = {
 };
 
 describe("single-engine AI request privacy", () => {
+  it.each(engines)(
+    "%s request is identical after all other results, previous AI advice and preferences change",
+    (engine) => {
+      const source = structuredClone(reading());
+      const expected = buildAiRequest(source, engine);
+      const modified = structuredClone(source);
+      const selected = modified.results.find(
+        (result) => result.engine === engine,
+      )!;
+      // Neither previous model outputs nor presentation metadata are evidence.
+      Object.assign(selected, {
+        enhancement: "PRIVATE_PREVIOUS_SELECTED_ADVICE",
+      });
+      Object.assign(modified, {
+        preferences: { pinned: [engine], liked: [engine], included: [] },
+        enhancements: Object.fromEntries(
+          engines.map((other) => [
+            other,
+            {
+              response: { text: `PRIVATE_PREVIOUS_ADVICE_${other}` },
+            },
+          ]),
+        ),
+      });
+      modified.input.engines = [engine];
+      modified.results = [
+        selected,
+        ...modified.results
+          .filter((result) => result.engine !== engine)
+          .reverse()
+          .map((result) => ({
+            ...result,
+            raw: {
+              kind: "runes" as const,
+              runes: [{ id: "PRIVATE_OTHER_RAW", position: "提示" as const }],
+            },
+            interpretation: {
+              ...result.interpretation!,
+              headline: "PRIVATE_OTHER_HEADLINE",
+              paragraphs: [
+                {
+                  label: "PRIVATE_OTHER_POSITION",
+                  text: "PRIVATE_OTHER_ADVICE",
+                  knowledgeId: "",
+                  ruleId: "",
+                  templateId: "",
+                },
+              ],
+            },
+          })),
+      ];
+      const before = JSON.stringify(modified);
+      expect(buildAiRequest(modified, engine)).toEqual(expected);
+      expect(JSON.stringify(modified)).toBe(before);
+      // Deleting the other systems also has no influence.
+      modified.results = [selected];
+      expect(buildAiRequest(modified, engine)).toEqual(expected);
+    },
+  );
+
+  it("preserves tarot positions and reversals that can change the advice while keeping the question identical", () => {
+    const source = structuredClone(reading());
+    const selected = source.results.find(
+      (result) => result.engine === "tarot",
+    )!;
+    const raw: TarotRaw = {
+      kind: "tarot",
+      cards: [
+        { id: "tarot-major-1", position: "现状", reversed: false },
+        { id: "tarot-major-7", position: "阻力", reversed: false },
+        { id: "tarot-major-9", position: "提示", reversed: false },
+      ],
+    };
+    selected.raw = raw;
+    selected.interpretation = interpret(raw, source.input);
+    const upright = buildAiRequest(source, "tarot");
+    raw.cards[1].reversed = true;
+    selected.interpretation = interpret(raw, source.input);
+    const reversed = buildAiRequest(source, "tarot");
+    expect(reversed.context).toEqual(upright.context);
+    expect(upright.evidence.rawSummary).toContain("阻力：战车（正位）");
+    expect(reversed.evidence.rawSummary).toContain("阻力：战车（逆位）");
+    expect(reversed.evidence.paragraphs[1]).not.toEqual(
+      upright.evidence.paragraphs[1],
+    );
+    expect(reversed.evidence.paragraphs[0]).toEqual(
+      upright.evidence.paragraphs[0],
+    );
+    expect(reversed.evidence.paragraphs[2]).toEqual(
+      upright.evidence.paragraphs[2],
+    );
+  });
+
+  it("preserves rune role changes even when the three symbols and broad themes are identical", () => {
+    const source = structuredClone(reading());
+    const selected = source.results.find(
+      (result) => result.engine === "runes",
+    )!;
+    const raw: RuneRaw = {
+      kind: "runes",
+      runes: [
+        { id: "rune-1", position: "现状" },
+        { id: "rune-11", position: "阻力" },
+        { id: "rune-5", position: "提示" },
+      ],
+    };
+    selected.raw = raw;
+    selected.interpretation = interpret(raw, source.input);
+    const move = buildAiRequest(source, "runes");
+    raw.runes[1].id = "rune-5";
+    raw.runes[2].id = "rune-11";
+    selected.interpretation = interpret(raw, source.input);
+    const pause = buildAiRequest(source, "runes");
+    expect(pause.context).toEqual(move.context);
+    expect([...pause.evidence.themes].sort()).toEqual(
+      [...move.evidence.themes].sort(),
+    );
+    expect(pause.evidence.rawSummary).not.toBe(move.evidence.rawSummary);
+    expect(pause.evidence.paragraphs[0]).toEqual(move.evidence.paragraphs[0]);
+    expect(pause.evidence.paragraphs.slice(1)).not.toEqual(
+      move.evidence.paragraphs.slice(1),
+    );
+    expect(pause.evidence.paragraphs.map(({ label }) => label)).toEqual(
+      selected.interpretation.paragraphs.map(({ label }) => label),
+    );
+  });
+
   it.each(engines)("%s only sends the documented allowlist", (engine) => {
     const source = structuredClone(reading());
     // Unexpected restored metadata must never broaden the outbound payload.
