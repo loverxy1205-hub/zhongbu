@@ -141,4 +141,10 @@ export interface SavedReading {
   reading: Reading;
   preferences: Preferences;
   savedAt: string;
+  enhancements?: Partial<Record<EngineId, AiEnhancement>>;
+}
+export interface AiEnhancement {
+  request: import("../shared/ai-contract").AiRequest;
+  response: import("../shared/ai-contract").AiResponse;
+  contextIncluded: boolean;
 }

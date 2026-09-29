@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { aiRequestSchema, aiResponseSchema } from "../../shared/ai-contract";
 const engine = z.enum(["tarot", "iching", "meihua", "numerology", "runes"]);
 const position = z.enum(["现状", "阻力", "提示"]);
 const theme = z.enum([
@@ -159,4 +160,14 @@ export const savedSchema = z.object({
     included: z.array(engine),
   }),
   savedAt: z.string(),
+  enhancements: z
+    .partialRecord(
+      engine,
+      z.object({
+        request: aiRequestSchema,
+        response: aiResponseSchema,
+        contextIncluded: z.boolean(),
+      }),
+    )
+    .optional(),
 });

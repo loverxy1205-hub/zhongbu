@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type {
   Category,
@@ -7,9 +7,10 @@ import type {
   Preferences,
   SavedReading,
   Scene,
+  AiEnhancement,
 } from "./types";
 import { DISCLAIMER, ENGINES, ENGINE_IDS } from "./data/meta";
-import { createReading } from "./engines/reading";
+import { createReading, deepFreeze } from "./engines/reading";
 import { detectTimezone, todayLocal } from "./lib/dates";
 import {
   clearHistory,
@@ -28,10 +29,15 @@ import {
   resultMarkdown,
 } from "./lib/export";
 import { ResultCard } from "./components/ResultCard";
+import { EngineAccent } from "./components/EngineArt";
+import { AiPanel } from "./components/AiPanel";
+import { useAi } from "./lib/useAi";
 import { KnowledgeLibrary } from "./components/KnowledgeLibrary";
 import { SummaryView } from "./components/SummaryView";
 import { ADAPTED_ACTIONS } from "./rules/interpret";
 import "./styles.css";
+import "./engine-themes.css";
+import "./experience.css";
 const initialInput = (): Input => ({
   question: "",
   category: "日常",
@@ -80,10 +86,14 @@ export default function Zhongbu() {
   const lock = useRef(!!initialSession.value),
     heading = useRef<HTMLHeadingElement>(null);
   const readingKey = active?.reading.readingId;
+  const activeRef = useRef(active);
+  const historyRef = useRef(history);
+  const ai = useAi(active);
   useEffect(() => {
     if (readingKey && page === "reading") heading.current?.focus();
   }, [readingKey, page]);
-  function activate(value: SavedReading) {
+  const activate = useCallback((value: SavedReading) => {
+    activeRef.current = value;
     setActive(value);
     try {
       const error = saveSession(getBrowserStorage("sessionStorage"), value);
@@ -91,42 +101,71 @@ export default function Zhongbu() {
     } catch {
       setNotice("会话存储不可用；当前结果可以导出，刷新不会保留。");
     }
+  }, []);
+  function completeAi(
+    readingId: string,
+    engine: EngineId,
+    value: AiEnhancement,
+  ) {
+    const current = activeRef.current;
+    if (
+      !current ||
+      current.reading.readingId !== readingId ||
+      current.enhancements?.[engine]
+    )
+      return;
+    const next = {
+      ...current,
+      enhancements: { ...current.enhancements, [engine]: deepFreeze(value) },
+    };
+    activate(next);
+    if (historyRef.current.some((h) => h.reading.readingId === readingId))
+      save(next, true);
   }
   function update<K extends keyof Input>(key: K, value: Input[K]) {
     setInput((prev) => ({ ...prev, [key]: value }));
   }
-  function persist(items: SavedReading[]) {
-    if (historyError) {
-      setNotice("原有记录读取失败；请先导出当前结果，或清空损坏记录后再保存。");
-      return false;
-    }
-    try {
-      const error = saveHistory(getBrowserStorage("localStorage"), items);
-      if (error) {
-        setNotice(error);
+  const persist = useCallback(
+    (items: SavedReading[]) => {
+      if (historyError) {
+        setNotice(
+          "原有记录读取失败；请先导出当前结果，或清空损坏记录后再保存。",
+        );
         return false;
       }
-      setHistory(items);
-      return true;
-    } catch {
-      setNotice("保存失败：本机存储不可用，请导出当前记录。");
-      return false;
-    }
-  }
-  function save(value = active, quiet = false) {
-    if (!value) return;
-    const next = { ...value, savedAt: new Date().toISOString() };
-    if (
-      persist([
-        next,
-        ...history.filter(
-          (h) => h.reading.readingId !== value.reading.readingId,
-        ),
-      ])
-    ) {
-      if (!quiet) setNotice("已保存到本机记录。生日未写入记录。");
-    }
-  }
+      try {
+        const error = saveHistory(getBrowserStorage("localStorage"), items);
+        if (error) {
+          setNotice(error);
+          return false;
+        }
+        setHistory(items);
+        historyRef.current = items;
+        return true;
+      } catch {
+        setNotice("保存失败：本机存储不可用，请导出当前记录。");
+        return false;
+      }
+    },
+    [historyError],
+  );
+  const save = useCallback(
+    (value = active, quiet = false) => {
+      if (!value) return;
+      const next = { ...value, savedAt: new Date().toISOString() };
+      if (
+        persist([
+          next,
+          ...historyRef.current.filter(
+            (h) => h.reading.readingId !== value.reading.readingId,
+          ),
+        ])
+      ) {
+        if (!quiet) setNotice("已保存到本机记录。生日未写入记录。");
+      }
+    },
+    [active, persist],
+  );
   function changePreferences(prefs: Preferences, shouldSave = false) {
     if (!active) return;
     const next = { ...active, preferences: prefs };
@@ -173,6 +212,7 @@ export default function Zhongbu() {
   }
   function newReading() {
     lock.current = false;
+    activeRef.current = null;
     setActive(null);
     setAnimate(false);
     setPage("reading");
@@ -198,6 +238,7 @@ export default function Zhongbu() {
       if (error) setNotice(error);
       else {
         setHistory([]);
+        historyRef.current = [];
         setHistoryError(false);
         setNotice("已清空本机历史，当前结果仍保留。");
       }
@@ -255,7 +296,7 @@ export default function Zhongbu() {
           </button>
         </nav>
         <span className="local-badge">
-          <i /> 只在你的设备上计算
+          <i /> 本地起卦 · 灵感随心
         </span>
       </header>
       {notice && (
@@ -294,7 +335,7 @@ export default function Zhongbu() {
                   download(
                     "众卜-本机记录.md",
                     history
-                      .map((h) => readingMarkdown(h.reading))
+                      .map((h) => readingMarkdown(h.reading, h.enhancements))
                       .join("\n\n---\n\n"),
                     "text/markdown",
                   )
@@ -470,7 +511,7 @@ export default function Zhongbu() {
                     onClick={() =>
                       download(
                         `${active.reading.readingId}.md`,
-                        readingMarkdown(active.reading),
+                        readingMarkdown(active.reading, active.enhancements),
                         "text/markdown",
                       )
                     }
@@ -522,13 +563,31 @@ export default function Zhongbu() {
                 </div>
                 <div className="results-grid">
                   {displayed.map((r) => (
-                    <ResultCard
+                    <div
+                      className={`result-stack result-stack-${r.engine}`}
                       key={r.engine}
-                      result={r}
-                      prefs={active.preferences}
-                      onToggle={toggle}
-                      onCopy={() => copy(resultMarkdown(r))}
-                    />
+                    >
+                      <ResultCard
+                        result={r}
+                        prefs={active.preferences}
+                        onToggle={toggle}
+                        onCopy={() => copy(resultMarkdown(r))}
+                      />
+                      {r.status === "ok" && (
+                        <AiPanel
+                          engine={r.engine}
+                          enhancement={active.enhancements?.[r.engine]}
+                          status={ai.statuses[`${readingKey}:${r.engine}`]}
+                          onGenerate={(includeContext) => {
+                            void ai.generate(
+                              r.engine,
+                              includeContext,
+                              completeAi,
+                            );
+                          }}
+                        />
+                      )}
+                    </div>
                   ))}
                 </div>
                 {!displayed.length && (
@@ -550,16 +609,23 @@ export default function Zhongbu() {
           <>
             <section className="intro">
               <div>
-                <span className="section-kicker">众卜 · 给思考留一点空白</span>
+                <span className="section-kicker">众卜 · 今夜，听万象说话</span>
                 <h1>
                   一个问题，<em>多种视角。</em>
                 </h1>
-                <p>让不同的象征各自说话。答案由你理解，选择始终属于你。</p>
+                <p>
+                  洗一副星光，摇一枚铜钱，等一枝梅开。
+                  <br />
+                  让不同的象征各自说话，选择始终属于你。
+                </p>
               </div>
               <div className="intro-mark" aria-hidden="true">
-                <span>✧</span>
-                <i />
-                <small>看见 · 思考 · 自择</small>
+                <div className="hero-orbit">
+                  <EngineAccent engine="tarot" />
+                  <EngineAccent engine="iching" />
+                  <EngineAccent engine="meihua" />
+                </div>
+                <small>星月 · 山水 · 梅间</small>
               </div>
             </section>
             <div className="workspace">
@@ -582,7 +648,8 @@ export default function Zhongbu() {
                   />
                 </label>
                 <div className="input-note">
-                  问题用于展示与记录；解读依据下方由你选择的类别、场景和行动。
+                  本地解读依据下方选择的类别、场景与行动；稍后可自愿让 AI
+                  结合你的问题展开。
                 </div>
                 <fieldset className="chip-field">
                   <legend>问题类别</legend>
@@ -755,7 +822,7 @@ export default function Zhongbu() {
                   {ENGINE_IDS.map((id) => (
                     <label
                       key={id}
-                      className={input.engines.includes(id) ? "checked" : ""}
+                      className={`picker-${id} ${input.engines.includes(id) ? "checked" : ""}`}
                     >
                       <input
                         type="checkbox"
@@ -770,7 +837,7 @@ export default function Zhongbu() {
                         }
                       />
                       <span className="picker-icon" aria-hidden="true">
-                        {ENGINES[id].icon}
+                        <EngineAccent engine={id} />
                       </span>
                       <span>
                         <b>{ENGINES[id].name}</b>
@@ -825,14 +892,11 @@ export default function Zhongbu() {
               </form>
               <aside className="side-notes">
                 <div className="perspectives-card">
-                  <span className="section-kicker">不同的窗，同一个问题</span>
+                  <span className="section-kicker">五种意象 · 一场心游</span>
                   <div className="symbol-composition" aria-hidden="true">
-                    <div className="tiny-card">
-                      ✧<span>THE STAR</span>
-                    </div>
-                    <div className="tiny-hex">☷</div>
-                    <div className="tiny-rune">ᚱ</div>
-                    <span className="gold-spark">✦</span>
+                    <EngineAccent engine="tarot" />
+                    <EngineAccent engine="meihua" />
+                    <EngineAccent engine="iching" />
                   </div>
                   <h2>
                     不用急着找
@@ -845,11 +909,14 @@ export default function Zhongbu() {
                 </div>
                 <div className="privacy-note">
                   <span>⌁</span>
-                  <h3>只在这里，只属于你</h3>
+                  <h3>由你决定，分享到哪里</h3>
                   <p>
-                    计算与解读均在浏览器本地完成。没有账户，没有模型调用，也没有后台上传。
+                    抽取、起卦与基础解读在本地完成。想听更生动的展开时，再点击
+                    DeepSeek 灵感解读。
                   </p>
-                  <p>想回看时，再主动保存到本机。</p>
+                  <p>
+                    模型解读需要联网，发送范围会提前说明。生日字段不发送，记录由你主动保存到本机。
+                  </p>
                 </div>
                 <div className="small-note">
                   <span>✦</span>

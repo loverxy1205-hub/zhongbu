@@ -10,6 +10,12 @@ import { ENGINES } from "../data/meta";
 import { TAROT } from "../data/tarot";
 import { RUNES } from "../data/runes";
 import { hexByCode, TRIGRAMS } from "../data/hexagrams";
+import {
+  EngineAccent,
+  EngineLandscape,
+  NumberOrbit,
+  TarotArt,
+} from "./EngineArt";
 export function HexFigure({
   code,
   moving = [],
@@ -50,7 +56,7 @@ export function HexFigure({
 export function RawVisual({ raw }: { raw: Raw }) {
   if (raw.kind === "tarot")
     return (
-      <div className="triptych">
+      <div className="triptych tarot-spread">
         {raw.cards.map((d, i) => {
           const c = TAROT.find((c) => c.id === d.id)!;
           return (
@@ -59,18 +65,15 @@ export function RawVisual({ raw }: { raw: Raw }) {
                 0{i + 1} / {d.position}
               </span>
               <div className={`tarot-tile ${d.reversed ? "reversed" : ""}`}>
-                <div className="card-stars">✦</div>
-                <div className={`arcana-art art-${i}`} aria-hidden="true">
-                  <span className="orbit" />
-                  <span className="star">
-                    {i === 0 ? "☼" : i === 1 ? "◇" : "✧"}
-                  </span>
-                  <span className="horizon" />
+                <div className="arcana-art" aria-hidden="true">
+                  <TarotArt cardId={d.id} />
                 </div>
                 <span className="card-number">{c.english}</span>
               </div>
               <strong>{c.name}</strong>
-              <small>{d.reversed ? "逆位" : "正位"}</small>
+              <small className="card-orientation">
+                {d.reversed ? "逆位" : "正位"}
+              </small>
             </div>
           );
         })}
@@ -86,7 +89,10 @@ export function RawVisual({ raw }: { raw: Raw }) {
               <span className="position">
                 0{i + 1} / {d.position}
               </span>
-              <div className="rune-stone">{r.symbol}</div>
+              <div className={`rune-stone rune-stone-${i}`}>
+                <span className="rune-engraving">{r.symbol}</span>
+                <span className="stone-cut" aria-hidden="true" />
+              </div>
               <strong>{r.name}</strong>
               <small>{r.keywords[0]}</small>
             </div>
@@ -98,6 +104,7 @@ export function RawVisual({ raw }: { raw: Raw }) {
     return (
       <div className="number-visual">
         <div className="personal-day">
+          <NumberOrbit number={raw.day} />
           <span>个人日</span>
           <strong>{raw.day}</strong>
           <small>目标日期的观察主题</small>
@@ -119,7 +126,8 @@ export function RawVisual({ raw }: { raw: Raw }) {
     b = hexByCode(raw.code),
     c = hexByCode(raw.changedCode);
   return (
-    <div className="hex-pair">
+    <div className={`hex-pair hex-pair-${raw.kind}`}>
+      <EngineLandscape engine={raw.kind} />
       <HexFigure code={raw.code} moving={moving} label={`本卦 · ${b.name}`} />
       <span className="hex-arrow">
         →<small>{moving.length ? `${moving.join("、")} 爻动` : "无动爻"}</small>
@@ -287,7 +295,7 @@ export function ResultCard({
     >
       <header className="result-header">
         <div className="engine-emblem" aria-hidden="true">
-          {meta.icon}
+          <EngineAccent engine={result.engine} />
         </div>
         <div>
           <h3>{meta.name}</h3>

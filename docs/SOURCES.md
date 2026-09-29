@@ -23,4 +23,8 @@
 
 ## 版本更新
 
+v1.1 新增的 SVG 装饰为本站原创：塔罗按牌号／花色变化的几何符号，周易山水云纹、梅枝五瓣花、数字星轨、卢恩石纹；不使用商业牌面或远程图片。AI 灵感解读来源单独标为 DeepSeek，不能混同本知识库白话或传统原典。
+
+接口和部署依据：[DeepSeek 官方调用文档](https://api-docs.deepseek.com/guides/harness)、[Chat Completions API](https://api-docs.deepseek.com/api/create-chat-completion/)、[Cloudflare Workers Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)、[Workers Rate Limiting](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)。运行时只有用户显式生成 AI 才调用代理和 DeepSeek，知识数据本身仍全部打包。
+
 改变知识、规则或模板时更新 `src/data/meta.ts` 中相应版本，保留旧记录内冻结的文本。来源快照无需在应用运行时加载；生产 bundle 只带实际知识数据。

@@ -24,7 +24,10 @@ export function resultMarkdown(r: EngineResult) {
     `### 来源与限制\n${[...i.sources, ...i.limits].join("\n\n")}`,
   ].join("\n\n");
 }
-export function readingMarkdown(reading: Reading) {
+export function readingMarkdown(
+  reading: Reading,
+  enhancements?: SavedReading["enhancements"],
+) {
   return [
     `# 众卜 · 一个问题，多种视角。`,
     DISCLAIMER,
@@ -32,6 +35,14 @@ export function readingMarkdown(reading: Reading) {
     `问题：${reading.input.question}\n类别：${reading.input.category}\n场景：${reading.input.scene}\n模式：${reading.input.mode === "action" ? "行动取舍" : "开放探索"}\n行动：${reading.input.action}`,
     `生日默认不记录；若你在问题或行动中自行填写个人信息，导出仍会包含这些自由文本，请在分享前检查。`,
     ...reading.results.map(resultMarkdown),
+    ...reading.results.flatMap((r) => {
+      const extra = enhancements?.[r.engine];
+      return extra
+        ? [
+            `## ${ENGINES[r.engine].name} · AI 灵感解读\n\n${extra.response.text}\n\n模型：${extra.response.model}；提示版本：${extra.response.promptVersion}；生成时间：${extra.response.generatedAt}。${extra.contextIncluded ? "包含自愿发送的问题与行动。" : "未发送问题与行动。"}模型生成，不属于传统原文或本地规则结论。`,
+          ]
+        : [];
+    }),
     `版本：${JSON.stringify(reading.versions)}`,
   ].join("\n\n");
 }

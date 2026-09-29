@@ -1,7 +1,7 @@
 {
   "name": "zhongbu",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
-    "format": "prettier --write src tests scripts *.ts *.json *.html docs/*.md README.md .github/workflows/*.yml"
+    "format": "prettier --write src shared worker tests scripts *.ts *.json *.html docs/*.md README.md .github/workflows/*.yml",
+    "worker:dev": "wrangler dev --config worker/wrangler.jsonc --env development",
+    "worker:deploy": "wrangler deploy --config worker/wrangler.jsonc"
   },
   "dependencies": {
     "lunar-typescript": "1.8.6",
@@ -31,6 +33,10 @@
     "prettier": "3.9.9",
     "typescript": "6.0.3",
     "vite": "8.3.1",
-    "vitest": "5.0.2"
+    "vitest": "5.0.2",
+    "wrangler": "4.143.0"
+  },
+  "overrides": {
+    "undici": "7.29.1"
   }
 }

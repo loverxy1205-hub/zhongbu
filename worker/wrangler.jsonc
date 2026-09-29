@@ -1,0 +1,51 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "zhongbu-ai",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-29",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {
+    "enabled": false,
+    "logs": { "enabled": false, "invocation_logs": false },
+  },
+  "vars": {
+    "ENVIRONMENT": "production",
+    "DEEPSEEK_MODEL": "deepseek-flash",
+  },
+  "ratelimits": [
+    {
+      "name": "PER_IP_LIMITER",
+      "namespace_id": "290901",
+      "simple": { "limit": 6, "period": 60 },
+    },
+    {
+      "name": "SHARED_LIMITER",
+      "namespace_id": "290902",
+      "simple": { "limit": 40, "period": 60 },
+    },
+  ],
+  "env": {
+    "development": {
+      "name": "zhongbu-ai-development",
+      "workers_dev": false,
+      "preview_urls": false,
+      "vars": {
+        "ENVIRONMENT": "development",
+        "DEEPSEEK_MODEL": "deepseek-flash",
+      },
+      "ratelimits": [
+        {
+          "name": "PER_IP_LIMITER",
+          "namespace_id": "290903",
+          "simple": { "limit": 6, "period": 60 },
+        },
+        {
+          "name": "SHARED_LIMITER",
+          "namespace_id": "290904",
+          "simple": { "limit": 40, "period": 60 },
+        },
+      ],
+    },
+  },
+}

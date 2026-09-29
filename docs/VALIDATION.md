@@ -1,5 +1,18 @@
 # 实际验证记录
 
+## v1.1 · 五套主题与 DeepSeek 延伸（2026-09-29）
+
+- `npm run check` 已通过：TypeScript、lint（零警告）、118 项测试、生产构建。测试由原始引擎40项、前端AI白名单与异常处理29项、代理与原生workerd49项组成。
+- `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`：31项通过，包含桌面12、手机12、StrictMode1、AI交互6。模型交互自动测试拦截为假响应，不消耗真实API。
+- 新主题的桌面／手机首页和结果页通过 axe A/AA 自动检查；人工检查五种结果卡、390px手机无横向溢出。人工截图检查发现首页侧栏标题偏暗，已修正为浅金色。
+- Workers已真实部署，Secret由隐藏终端输入上传，未写入源码／文件／Git。DeepSeek官方模型列表和最小chat调用均200；真实Workers请求已取得中文模型解读，CORS预检204。
+- 首次真实请求发现：当前workerd不接受 `redirect: error`，尽管查询到的官方文档列出该值。改为 `manual` 并拒绝3xx；新增原生workerd实际执行完整Worker并构造上游Request的测试，另验证301/302/307/308不会跟随。不能以Node假fetch测试替代平台实测。
+- 前端构建仅含公开代理地址。代码／生产资源未找到真实密钥模式；运行依赖审计0漏洞。Wrangler工具链的undici锁定为7.29.1修补已知依赖漏洞，全量npm audit也为0。
+- AI请求默认排除问题／行动；测试覆盖反思文本内嵌行动不会绕过勾选。生日字段、问卜精确时刻、其他体系、偏好不发送。模型回复另存enhancements，刷新、收藏与视图切换不再次调用或改变Reading。
+- 前端包约753 kB原始／251 kB gzip，仍有Vite 500 kB体积提示；保留全部本地知识和算法以支持离线，不代表构建失败。
+
+## v1 初始版本验证（历史记录）
+
 本地验证时间：2026-09-29。环境：Windows、Node.js 24.14.1、npm 11.11.0、已安装的 Chrome（Playwright `channel=chrome`）。
 
 | 检查                                         | 实际结果                                                                              |

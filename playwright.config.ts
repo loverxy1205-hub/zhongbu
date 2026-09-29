@@ -14,17 +14,22 @@ export default defineConfig({
   projects: [
     {
       name: "desktop",
-      testIgnore: "**/strictmode.spec.ts",
+      testIgnore: ["**/strictmode.spec.ts", "**/ai.spec.ts"],
       use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "mobile",
-      testIgnore: "**/strictmode.spec.ts",
+      testIgnore: ["**/strictmode.spec.ts", "**/ai.spec.ts"],
       use: { ...devices["Pixel 7"] },
     },
     {
       name: "strict-dev",
       testMatch: "**/strictmode.spec.ts",
+      use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:5174" },
+    },
+    {
+      name: "ai-dev",
+      testMatch: "**/ai.spec.ts",
       use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:5174" },
     },
   ],
@@ -36,6 +41,9 @@ export default defineConfig({
     },
     {
       command: "npm run dev -- --host 127.0.0.1 --port 5174 --strictPort",
+      env: {
+        VITE_INTERPRETATION_API_URL: "http://127.0.0.1:5174/test-ai/interpret",
+      },
       url: "http://127.0.0.1:5174",
       reuseExistingServer: !process.env.CI,
     },
