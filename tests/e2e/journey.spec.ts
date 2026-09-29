@@ -131,8 +131,8 @@ test("a global pause stops continuous motion without changing the reading", asyn
   await expect(page.locator(".app-shell")).toHaveClass(/motion-paused/);
   await page.getByRole("button", { name: "开启这次探索" }).click();
   await expect(page.getByTestId("result-tarot")).toBeVisible({ timeout: 1000 });
-  const original = (await current(page)).reading;
   await revealAll(page);
+  const original = (await current(page)).reading;
   await expect
     .poll(() =>
       page.evaluate(

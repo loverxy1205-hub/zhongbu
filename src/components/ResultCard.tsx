@@ -4,6 +4,7 @@ import type {
   Preferences,
   Raw,
   EngineId,
+  SavedReading,
 } from "../types";
 import { ENGINES } from "../data/meta";
 import { TAROT } from "../data/tarot";
@@ -18,6 +19,10 @@ import {
 } from "./EngineArt";
 import { EngineReveal } from "./EngineReveal";
 import { RuneReveal } from "./RuneReveal";
+import { TarotDeck } from "./TarotDeck";
+import { CoinRitual } from "./CoinRitual";
+import { RuneBag } from "./RuneBag";
+import { MatrixArt } from "./MatrixArt";
 export function HexFigure({
   code,
   moving = [],
@@ -232,6 +237,7 @@ export function RawVisual({
         </div>
       </div>
     );
+  if (raw.kind === "numerology-matrix") return <MatrixArt raw={raw} />;
   const moving = raw.kind === "iching" ? raw.moving : [raw.moving],
     b = hexByCode(raw.code),
     c = hexByCode(raw.changedCode);
@@ -269,6 +275,10 @@ export function ResultCard({
   engineRevealed = true,
   onRevealEngine,
   motionPaused = false,
+  journey,
+  onPickSlot,
+  onCoinRound,
+  onDrawRune,
 }: {
   result: EngineResult;
   prefs: Preferences;
@@ -276,6 +286,10 @@ export function ResultCard({
   onCopy: () => void;
   engineRevealed?: boolean;
   onRevealEngine?: () => void;
+  journey?: SavedReading;
+  onPickSlot?: (slot: number) => void;
+  onCoinRound?: (index: number) => void;
+  onDrawRune?: (index: number) => void;
 } & TarotRevealProps &
   RuneRevealProps) {
   const meta = ENGINES[result.engine],
@@ -302,7 +316,9 @@ export function ResultCard({
     result.status === "ok" &&
     !coveredEngine &&
     (!tarotRaw || tarotRevealedCount === tarotRaw.cards.length) &&
-    (!runeRaw || runeRevealedCount === runeRaw.runes.length);
+    (!runeRaw ||
+      ((journey?.runeDrawn === undefined || journey.runeDrawn === 3) &&
+        runeRevealedCount === runeRaw.runes.length));
   return (
     <article
       className={`result-card engine-${result.engine}`}
@@ -320,7 +336,14 @@ export function ResultCard({
           <span className="pinned-badge">置顶</span>
         )}
       </header>
-      {result.status === "unavailable" ? (
+      {result.status === "pending" ? (
+        <TarotDeck
+          deck={journey?.tarotDeck || []}
+          selectedSlots={journey?.tarotPicked || []}
+          onPick={(slot) => onPickSlot?.(slot)}
+          motionPaused={motionPaused}
+        />
+      ) : result.status === "unavailable" ? (
         <div className="unavailable">
           <span>本次不可用</span>
           <p>{result.error}</p>
@@ -330,13 +353,34 @@ export function ResultCard({
         result.raw &&
         i && (
           <>
-            {coveredEngine ? (
+            {result.raw.kind === "iching" &&
+              journey?.coinRounds !== undefined && (
+                <CoinRitual
+                  raw={result.raw}
+                  rounds={journey.coinRounds}
+                  onRevealRound={(index) => onCoinRound?.(index)}
+                  motionPaused={motionPaused}
+                />
+              )}
+            {runeRaw && journey?.runeDrawn !== undefined ? (
+              <RuneBag
+                draws={runeRaw.runes}
+                drawnCount={journey.runeDrawn}
+                revealed={runeRevealed || []}
+                onDraw={(index) => onDrawRune?.(index)}
+                onReveal={(index) => onRevealRune?.(index)}
+                motionPaused={motionPaused}
+              />
+            ) : coveredEngine &&
+              !(
+                coveredEngine === "iching" && journey?.coinRounds !== undefined
+              ) ? (
               <EngineReveal
                 engine={coveredEngine}
                 onReveal={() => onRevealEngine?.()}
                 motionPaused={motionPaused}
               />
-            ) : (
+            ) : !coveredEngine ? (
               <RawVisual
                 raw={result.raw}
                 tarotRevealed={tarotRevealed}
@@ -345,7 +389,7 @@ export function ResultCard({
                 onRevealRune={onRevealRune}
                 motionPaused={motionPaused}
               />
-            )}
+            ) : null}
             {tarotRaw && (
               <p className="tarot-reveal-progress" role="status">
                 {canRead

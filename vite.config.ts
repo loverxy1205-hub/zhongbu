@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
     "VITE_INTERPRETATION_API_URL",
   ).VITE_INTERPRETATION_API_URL?.trim();
   let origin = "";
-  if (configured) {
+  if (configured && configured !== "/api/interpret") {
     const url = new URL(configured);
     const local =
       mode !== "production" &&

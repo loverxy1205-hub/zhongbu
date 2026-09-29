@@ -6,7 +6,16 @@ export function isEngineRevealed(
   engine: EngineId,
 ): boolean {
   const result = saved.reading.results.find((value) => value.engine === engine);
+  if (result?.status === "pending") return false;
   if (!result || result.status !== "ok") return true;
+  if (engine === "iching" && saved.coinRounds !== undefined)
+    return saved.coinRounds === 6;
+  if (
+    engine === "runes" &&
+    saved.runeDrawn !== undefined &&
+    saved.runeDrawn < 3
+  )
+    return false;
   if (engine === "tarot" || engine === "runes") {
     const revealed =
       engine === "tarot" ? saved.tarotRevealed : saved.runeRevealed;
@@ -27,6 +36,14 @@ export function advanceReveal(
   index?: number,
 ): SavedReading {
   if (isEngineRevealed(saved, engine)) return saved;
+  if (engine === "tarot" && saved.tarotDeck) return saved;
+  if (engine === "iching" && saved.coinRounds !== undefined) return saved;
+  if (
+    engine === "runes" &&
+    saved.runeDrawn !== undefined &&
+    saved.runeDrawn < 3
+  )
+    return saved;
   if (engine === "tarot" || engine === "runes") {
     if (
       index === undefined ||

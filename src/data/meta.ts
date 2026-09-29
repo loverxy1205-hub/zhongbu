@@ -1,9 +1,9 @@
 import type { EngineId } from "../types";
 export const VERSIONS = {
-  app: "1.4.1",
-  knowledge: "2026.09.29-1",
-  rules: "1.1.0",
-  templates: "1.1.0",
+  app: "1.5.0",
+  knowledge: "2026.09.29-2",
+  rules: "1.2.0",
+  templates: "1.2.0",
   calendar: "lunar-typescript@1.8.6",
   schema: 1,
 } as const;
@@ -49,8 +49,8 @@ export const ENGINES: Record<
     name: "数字命理",
     short: "数字",
     icon: "⑨",
-    description: "简化个人日版 · 需要生日",
-    version: "简化个人日 v1",
+    description: "生日数字九宫格 · 需要生日",
+    version: "生日数字九宫格 v1",
   },
   runes: {
     name: "卢恩符文",
@@ -68,6 +68,8 @@ export const SOURCES = {
     "符号核对 Unicode Runic U+16A0–16FF；采用常见重建名称。中文象征解释为本站现代整理，不是统一的古代占卜规则。",
   numbers:
     "本站现代规则 v1：逐位相加归一到 1–9，不保留 11 / 22 / 33。主题及文案为本站整理。",
+  matrix:
+    "本站生日数字九宫格 v1：公历生日原始数字填入 1–9 格，忽略 0，保留重复；采用 1/4/7、2/5/8、3/6/9 布局。为现代数字象征约定，不声称是毕达哥拉斯本人提出的占卜算法；中文文案原创。",
   meihua:
     "《梅花易數》卷一「年月日時起例」（维基文库公版古籍）；本卦、动爻、变卦共用周易知识库；五行体用为简化版。",
 };

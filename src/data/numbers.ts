@@ -1,4 +1,4 @@
-import type { Knowledge, Theme } from "../types";
+import type { Knowledge, MatrixDigit, Theme } from "../types";
 import { SOURCES } from "./meta";
 const rows: [string, Theme, string][] = [
   ["起点", "推进", "把意愿集中在一个起点，辨认自己真正想开启的事。"],
@@ -21,3 +21,25 @@ export const NUMBERS: Knowledge[] = rows.map(([name, theme, meaning], i) => ({
   limits: "本站采用的现代象征规则，不描述人格定论或未来事件。",
   source: SOURCES.numbers,
 }));
+
+export const MATRIX_DIGITS: readonly MatrixDigit[] = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9,
+];
+/** Grid is read row by row, not a Lo Shu magic square. */
+export const MATRIX_LAYOUT: readonly MatrixDigit[] = [
+  1, 4, 7, 2, 5, 8, 3, 6, 9,
+];
+export const MATRIX_NUMBERS: Knowledge[] = rows.map(
+  ([name, theme, meaning], i) => ({
+    id: `matrix-number-${i + 1}`,
+    name: `${i + 1} · ${name}`,
+    keywords: [name, theme],
+    meaning,
+    themes: [theme],
+    conditions:
+      "生日数字九宫格：公历生日原始数字入格，忽略 0，保留重复；不添加四工作数。",
+    limits:
+      "本站现代象征解读。次数不是能力或人格评分，空格不表示缺陷；不推断健康、智商、财富或命运。",
+    source: SOURCES.matrix,
+  }),
+);

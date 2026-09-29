@@ -2,6 +2,9 @@ import { z } from "zod";
 import { aiRequestSchema, aiResponseSchema } from "../../shared/ai-contract";
 const engine = z.enum(["tarot", "iching", "meihua", "numerology", "runes"]);
 const position = z.enum(["现状", "阻力", "提示"]);
+const tarotId = z
+  .string()
+  .regex(/^tarot-(major-(?:[0-9]|1[0-9]|2[01])|[0-3]-(?:[0-9]|1[0-3]))$/);
 const theme = z.enum([
   "推进",
   "准备",
@@ -57,11 +60,7 @@ const raw = z.discriminatedUnion("kind", [
     cards: z
       .array(
         z.object({
-          id: z
-            .string()
-            .regex(
-              /^tarot-(major-(?:[0-9]|1[0-9]|2[01])|[0-3]-(?:[0-9]|1[0-3]))$/,
-            ),
+          id: tarotId,
           reversed: z.boolean(),
           position,
         }),
@@ -117,6 +116,28 @@ const raw = z.discriminatedUnion("kind", [
     day: digit,
     trace: z.array(z.string()),
   }),
+  z
+    .object({
+      kind: z.literal("numerology-matrix"),
+      cells: z
+        .array(
+          z
+            .object({
+              digit,
+              count: z.number().int().min(0).max(8),
+            })
+            .strict(),
+        )
+        .length(9)
+        .refine(
+          (cells) =>
+            new Set(cells.map((cell) => cell.digit)).size === 9 &&
+            cells.reduce((total, cell) => total + cell.count, 0) >= 1 &&
+            cells.reduce((total, cell) => total + cell.count, 0) <= 8,
+        ),
+      trace: z.array(z.string()),
+    })
+    .strict(),
 ]);
 const interpretation = z.object({
   headline: z.string(),
@@ -132,13 +153,24 @@ const interpretation = z.object({
 const result = z.discriminatedUnion("status", [
   z
     .object({
+      status: z.literal("pending"),
+      engine: z.literal("tarot"),
+      methodVersion: z.string(),
+    })
+    .strict(),
+  z
+    .object({
       status: z.literal("ok"),
       engine,
       methodVersion: z.string(),
       raw,
       interpretation,
     })
-    .refine((r) => r.raw.kind === r.engine),
+    .refine(
+      (r) =>
+        r.raw.kind === r.engine ||
+        (r.engine === "numerology" && r.raw.kind === "numerology-matrix"),
+    ),
   z.object({
     status: z.literal("unavailable"),
     engine,
@@ -146,51 +178,98 @@ const result = z.discriminatedUnion("status", [
     error: z.string(),
   }),
 ]);
-export const savedSchema = z.object({
-  reading: z.object({
-    readingId: z.string().regex(/^zb-[0-9a-f]{32}$/),
-    askedAt: z.iso.datetime(),
-    input,
-    results: z.array(result).min(1).max(5),
-    versions: z.object({
-      app: z.string(),
-      knowledge: z.string(),
-      rules: z.string(),
-      templates: z.string(),
-      calendar: z.string(),
-      schema: z.literal(1),
-    }),
-  }),
-  preferences: z.object({
-    pinned: z.array(engine),
-    liked: z.array(engine),
-    favorites: z.array(engine),
-    included: z.array(engine),
-  }),
-  savedAt: z.string(),
-  tarotRevealed: z
-    .array(z.number().int().min(0).max(2))
-    .max(3)
-    .refine((values) => new Set(values).size === values.length)
-    .optional(),
-  runeRevealed: z
-    .array(z.number().int().min(0).max(2))
-    .max(3)
-    .refine((values) => new Set(values).size === values.length)
-    .optional(),
-  engineRevealed: z
-    .array(z.enum(["iching", "meihua", "numerology"]))
-    .max(3)
-    .refine((values) => new Set(values).size === values.length)
-    .optional(),
-  enhancements: z
-    .partialRecord(
-      engine,
-      z.object({
-        request: aiRequestSchema,
-        response: aiResponseSchema,
-        contextIncluded: z.boolean(),
+export const savedSchema = z
+  .object({
+    activeEngine: engine.optional(),
+    reading: z.object({
+      readingId: z.string().regex(/^zb-[0-9a-f]{32}$/),
+      askedAt: z.iso.datetime(),
+      input,
+      results: z.array(result).min(1).max(5),
+      versions: z.object({
+        app: z.string(),
+        knowledge: z.string(),
+        rules: z.string(),
+        templates: z.string(),
+        calendar: z.string(),
+        schema: z.literal(1),
       }),
+    }),
+    preferences: z.object({
+      pinned: z.array(engine),
+      liked: z.array(engine),
+      favorites: z.array(engine),
+      included: z.array(engine),
+    }),
+    savedAt: z.string(),
+    tarotRevealed: z
+      .array(z.number().int().min(0).max(2))
+      .max(3)
+      .refine((values) => new Set(values).size === values.length)
+      .optional(),
+    runeRevealed: z
+      .array(z.number().int().min(0).max(2))
+      .max(3)
+      .refine((values) => new Set(values).size === values.length)
+      .optional(),
+    engineRevealed: z
+      .array(z.enum(["iching", "meihua", "numerology"]))
+      .max(3)
+      .refine((values) => new Set(values).size === values.length)
+      .optional(),
+    tarotDeck: z
+      .array(z.object({ id: tarotId, reversed: z.boolean() }))
+      .length(78)
+      .refine((cards) => new Set(cards.map((card) => card.id)).size === 78)
+      .optional(),
+    tarotPicked: z
+      .array(z.number().int().min(0).max(77))
+      .max(3)
+      .refine((picks) => new Set(picks).size === picks.length)
+      .optional(),
+    coinRounds: z.number().int().min(0).max(6).optional(),
+    runeDrawn: z.number().int().min(0).max(3).optional(),
+    enhancements: z
+      .partialRecord(
+        engine,
+        z.object({
+          request: aiRequestSchema,
+          response: aiResponseSchema,
+          contextIncluded: z.boolean(),
+        }),
+      )
+      .optional(),
+  })
+  .superRefine((saved, ctx) => {
+    const tarot = saved.reading.results.find((r) => r.engine === "tarot");
+    const issue = () =>
+      ctx.addIssue({ code: "custom", message: "揭晓进度与冻结结果不一致" });
+    if (saved.tarotDeck || saved.tarotPicked || tarot?.status === "pending") {
+      if (!saved.tarotDeck || !saved.tarotPicked || !tarot) {
+        issue();
+        return;
+      }
+      if (tarot.status === "pending" && saved.tarotPicked.length >= 3) issue();
+      if (tarot.status === "ok") {
+        if (tarot.raw.kind !== "tarot" || saved.tarotPicked.length !== 3) {
+          issue();
+          return;
+        }
+        const cards = tarot.raw.cards;
+        if (
+          saved.tarotPicked.some(
+            (slot, index) =>
+              cards[index].id !== saved.tarotDeck![slot].id ||
+              cards[index].reversed !== saved.tarotDeck![slot].reversed,
+          )
+        )
+          issue();
+      }
+    }
+    if (
+      saved.runeDrawn !== undefined &&
+      saved.runeDrawn < 3 &&
+      saved.runeRevealed?.length
     )
-    .optional(),
-});
+      issue();
+  });

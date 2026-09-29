@@ -5,6 +5,7 @@ import type {
   IChingRaw,
   MeihuaRaw,
   NumberRaw,
+  NumberMatrixRaw,
   RuneRaw,
   TarotRaw,
 } from "../types";
@@ -14,6 +15,7 @@ import { TRIGRAMS } from "../data/hexagrams";
 import { parseDate, zonedParts } from "../lib/dates";
 import { sample, uniformInt } from "../lib/random";
 import type { RandomSource } from "../lib/random";
+import { MATRIX_DIGITS } from "../data/numbers";
 const POSITIONS = ["现状", "阻力", "提示"] as const;
 export function drawTarot(reversals: boolean, rng: RandomSource): TarotRaw {
   const cards: CardDraw[] = sample(TAROT, 3, rng).map((c, i) => ({
@@ -178,6 +180,31 @@ export function calculateNumbers(
       `个人年 = reduce(出生月 + 出生日 + 目标年份数字和) = ${year}；出生中间值已脱敏`,
       `个人月 = reduce(${year} + ${t.month}) = ${month}`,
       `个人日 = reduce(${month} + ${t.day}) = ${day}`,
+    ],
+  };
+}
+
+/** Birthday-digit matrix: a modern site convention, not a historical claim. */
+export function calculateNumberMatrix(
+  birthday: string,
+  askedAt: string,
+  timezone: string,
+): NumberMatrixRaw {
+  if (!birthday) throw Error("未提供出生日期；其余体系照常展示。");
+  parseDate(birthday);
+  if (birthday > zonedParts(askedAt, timezone).date)
+    throw Error("出生日期不能晚于问卜日");
+  const cells = MATRIX_DIGITS.map((digit) => ({
+    digit,
+    count: [...birthday].filter((character) => character === String(digit)).length,
+  }));
+  return {
+    kind: "numerology-matrix",
+    cells,
+    trace: [
+      "生日的公历 YYYY-MM-DD 原始数字逐个入格；忽略 0 和分隔符，保留 1–9 的重复次数。",
+      "布局按行依次为 1 / 4 / 7、2 / 5 / 8、3 / 6 / 9；不添加四工作数，不求个人日，不对目标日期加数。",
+      "出生中间值已脱敏；不保留生日及原始数字顺序。格数仍属于由生日导出的个人数据。",
     ],
   };
 }

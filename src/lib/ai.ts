@@ -4,6 +4,7 @@ import type { EngineId, Reading, Raw } from "../types";
 import { TAROT } from "../data/tarot";
 import { RUNES } from "../data/runes";
 import { HEXAGRAMS } from "../data/hexagrams";
+import { serviceError } from "./service";
 
 export const AI_ENDPOINT =
   import.meta.env.VITE_INTERPRETATION_API_URL?.trim() || "";
@@ -29,6 +30,8 @@ function rawSummary(raw: Raw): string {
       return `本卦${hex(raw.code)}；第${raw.moving}爻动；变卦${hex(raw.changedCode)}；体${raw.body}、用${raw.use}；${raw.relationship}`;
     case "numerology":
       return `生命数字${raw.life}；个人年${raw.year}；个人月${raw.month}；个人日${raw.day}。只保留派生数字。`;
+    case "numerology-matrix":
+      return "生日数字九宫格（现代象征约定）。仅提供已经冻结的精选主题与释义，不发送生日、原始数字串、各格次数或缺位全集。";
   }
 }
 export function buildAiRequest(
@@ -123,7 +126,7 @@ export async function requestAi(
     }
     if (!response.ok) {
       if (response.status === 429)
-        throw Error("先让灵感歇一会儿，请一分钟后再试。");
+        throw Error(await serviceError(response,"先让灵感歇一会儿，请一分钟后再试。"));
       if (response.status === 503)
         throw Error("灵感解读暂未就绪，本地结果仍可使用。");
       if (response.status === 504)

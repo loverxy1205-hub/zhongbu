@@ -80,9 +80,14 @@ export const aiErrorSchema = z
         "UPSTREAM_RESPONSE_INVALID",
         "UPSTREAM_OUTPUT_REJECTED",
         "UPSTREAM_TIMEOUT",
+        "ABUSE_BLOCKED",
+        "RATE_LIMITED",
+        "SERVICE_UNAVAILABLE",
       ])
       .optional(),
     upstreamStatus: z.number().int().min(100).max(599).optional(),
+    blockedUntil: z.iso.datetime().optional(),
+    retryAfterSeconds: z.number().int().min(1).max(86400).optional(),
   })
   .strict();
 

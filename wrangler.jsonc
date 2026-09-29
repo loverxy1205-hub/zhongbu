@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "zhongbu",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-09-29",
+  "services": [{ "binding": "INTERPRETATION", "service": "zhongbu-ai" }],
+  "env": {
+    "preview": {
+      "services": [{ "binding": "INTERPRETATION", "service": "zhongbu-ai" }],
+    },
+  },
+}

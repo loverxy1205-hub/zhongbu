@@ -13,6 +13,21 @@
     "ENVIRONMENT": "production",
     "DEEPSEEK_MODEL": "deepseek-flash",
   },
+  "durable_objects": {
+    "bindings": [{ "name": "ABUSE_GUARD", "class_name": "AbuseGuard" }],
+  },
+  "migrations": [
+    { "tag": "v1-abuse-guard", "new_sqlite_classes": ["AbuseGuard"] },
+  ],
+  "d1_databases": [
+    {
+      "binding": "FEEDBACK_DB",
+      "database_name": "zhongbu-feedback",
+      "database_id": "4284d81e-94c4-4397-bb55-8571892faeec",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "triggers": { "crons": ["17 3 * * *"] },
   "ratelimits": [
     {
       "name": "PER_IP_LIMITER",
@@ -33,7 +48,20 @@
       "vars": {
         "ENVIRONMENT": "development",
         "DEEPSEEK_MODEL": "deepseek-flash",
+        "ABUSE_HMAC_KEY": "local-development-only-public-hmac-key-not-for-production",
       },
+      "durable_objects": {
+        "bindings": [{ "name": "ABUSE_GUARD", "class_name": "AbuseGuard" }],
+      },
+      "d1_databases": [
+        {
+          "binding": "FEEDBACK_DB",
+          "database_name": "zhongbu-feedback-development",
+          "database_id": "00000000-0000-0000-0000-000000000002",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "triggers": { "crons": [] },
       "ratelimits": [
         {
           "name": "PER_IP_LIMITER",

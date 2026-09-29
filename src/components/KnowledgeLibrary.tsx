@@ -5,7 +5,8 @@ const isTarot = (e: Knowledge): e is TarotCard => "reversedMeaning" in e;
 import { TAROT } from "../data/tarot";
 import { RUNES } from "../data/runes";
 import { HEXAGRAMS } from "../data/hexagrams";
-import { NUMBERS } from "../data/numbers";
+import { MATRIX_NUMBERS } from "../data/numbers";
+import { VERSIONS } from "../data/meta";
 import { HexFigure } from "./ResultCard";
 export function KnowledgeLibrary() {
   const [tab, setTab] = useState("tarot"),
@@ -17,7 +18,7 @@ export function KnowledgeLibrary() {
         ? HEXAGRAMS
         : tab === "runes"
           ? RUNES
-          : NUMBERS;
+          : MATRIX_NUMBERS;
   const items = all.filter((e) =>
     `${e.name} ${e.keywords.join(" ")} ${"english" in e ? e.english : ""}`
       .toLowerCase()
@@ -25,12 +26,28 @@ export function KnowledgeLibrary() {
   );
   return (
     <section className="library">
-      <div className="section-kicker">本地知识库 / 版本 2026.09.29-1</div>
+      <div className="section-kicker">
+        本地知识库 / 版本 {VERSIONS.knowledge}
+      </div>
       <h1>每一种解释，都有来处。</h1>
       <p>
         原典、本站白话和场景反思分别呈现。全部知识随网站打包，阅读与计算不需要联网查询。
       </p>
       <div className="library-methods">
+        <details>
+          <summary>生日数字九宫格 · 现代算法约定</summary>
+          <p>
+            取公历生日 YYYY-MM-DD 中的原始数字，忽略 0
+            和分隔符，其余数字逐个填入 1–9 格并保留重复。布局按行为
+            1／4／7、2／5／8、3／6／9。不加四工作数，也不加目标日期。
+          </p>
+          <p>
+            这是本站采用的毕达哥拉斯式现代数字象征玩法，不声称由毕达哥拉斯本人提出。次数不是能力、人格、健康、智商或财富评分；空格不是缺陷。选取出现较多的至多两个数字作为观察入口，同次数按数字升序只是固定展示顺序。
+          </p>
+          <p>
+            旧记录继续保留当时的简化个人日计算和解释，不转换成九宫格。新九宫格在相同生日下保持相同图案。
+          </p>
+        </details>
         <details>
           <summary>梅花易数 · 历法与体用约定</summary>
           <p>
@@ -52,12 +69,12 @@ export function KnowledgeLibrary() {
           </p>
           <p>
             本地规则不做自由文本语义推断。问题不进入
-            URL。历史记录只有主动保存或收藏时写入本机；为刷新恢复，当前结果暂存于本标签页会话存储。生日不写入记录、计算轨迹或导出。问题里自行填写的信息仍会保留，请分享前检查。
+            URL。历史记录只有主动保存或收藏时写入本机；为刷新恢复，当前结果暂存于本标签页会话存储。原始生日不写入记录、计算轨迹或导出；仅点击「同意保存生日」后另存于当前浏览器，可随时忘记。九宫格次数是生日派生数据，分享记录前请检查。问题里自行填写的信息仍会保留。
           </p>
           <p>
             点击 DeepSeek 建议后，会发送本次问题、选项与该条结果，经 Cloudflare
             代理联网生成并标为
-            AI。生日字段、其他体系与偏好不发送。模型可能出错；这里没有遥测、登录或支付。
+            AI。生日字段、九宫格全部次数与缺位、其他体系与偏好不发送；数字仅发送已冻结的精选象征主题和白话。模型可能出错；这里没有遥测、登录或支付。
           </p>
         </details>
       </div>

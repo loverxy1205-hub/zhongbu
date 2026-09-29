@@ -46,6 +46,16 @@ function env(overrides: Partial<Env> = {}): Env {
     ENVIRONMENT: "production",
     PER_IP_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) },
     SHARED_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) },
+    ABUSE_HMAC_KEY: "unit-test-only-public-32-byte-hmac-key",
+    ABUSE_GUARD: {
+      idFromName: (name) => name,
+      get: () => ({ fetch: async () => Response.json({ status: "allowed" }) }),
+    },
+    FEEDBACK_DB: {
+      prepare: () => ({
+        bind: () => ({ run: async () => ({ success: true }) }),
+      }),
+    },
     ...overrides,
   };
 }
@@ -111,7 +121,7 @@ describe("single-engine interpretation proxy", () => {
     );
     const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
     expect(JSON.parse(payload.messages[1].content).context).toEqual(context);
-    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.29-5");
+    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.29-6");
     for (const requirement of [
       "仅写两个小段",
       "第一段以「解析：」开头，第二段以「建议：」开头",
@@ -127,6 +137,8 @@ describe("single-engine interpretation proxy", () => {
       "不能只凭卦名另套断法",
       "多个动爻要综合权衡，不能只挑有利爻迎合预选立场",
       "以个人日为主要主题，生命数字、个人年和个人月只作背景",
+      "若为「生日数字九宫格」，只依据已经提供的脱敏主题与白话",
+      "不得补算、推测生日或编造个人日与数字出现次数",
       "为何最终更偏向这一项",
       "事实真假、诊断、他人隐藏内心或动机不能由符号证明",
       "符号不能证实真伪",
@@ -263,7 +275,7 @@ describe("single-engine interpretation proxy", () => {
     expect(payload.messages[1].content).not.toContain(sample.readingId);
     expect(payload.messages[1].content).toContain("不去上课");
     expect(serverEnv.PER_IP_LIMITER.limit).toHaveBeenCalledWith({
-      key: "interpret:192.0.2.10",
+      key: expect.stringMatching(/^interpret:[a-f0-9]{64}$/),
     });
     expect(serverEnv.SHARED_LIMITER.limit).toHaveBeenCalledWith({
       key: "interpret:shared",
@@ -650,8 +662,7 @@ describe("single-engine interpretation proxy", () => {
       .fn<typeof fetch>()
       .mockImplementation(() => new Promise(() => {}));
     const pending = handleRequest(request(), env(), fetcher);
-    await vi.advanceTimersByTimeAsync(1);
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
     await vi.advanceTimersByTimeAsync(UPSTREAM_TIMEOUT_MS);
     const response = await pending;
     expect(response.status).toBe(504);
@@ -670,7 +681,7 @@ describe("single-engine interpretation proxy", () => {
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(stream));
     const pending = handleRequest(request(), env(), fetcher);
-    await vi.advanceTimersByTimeAsync(1);
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
     await vi.advanceTimersByTimeAsync(UPSTREAM_TIMEOUT_MS);
     const response = await pending;
     expect(response.status).toBe(504);
@@ -699,6 +710,11 @@ describe("single-engine interpretation proxy", () => {
                   ENVIRONMENT: "production",
                   PER_IP_LIMITER: { async limit() { return { success: true }; } },
                   SHARED_LIMITER: { async limit() { return { success: true }; } },
+                  ABUSE_HMAC_KEY: "native-workerd-public-hmac-fixture-only",
+                  ABUSE_GUARD: {
+                    idFromName: (name) => name,
+                    get: () => ({ fetch: async () => Response.json({ status: "allowed" }) }),
+                  },
                 };
                 return handleRequest(request, env, async (url, init) => {
                   // Instantiate the actual Request with every production option,

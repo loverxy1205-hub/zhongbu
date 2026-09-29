@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import type { SavedReading } from "../../src/types";
-import { revealAll } from "./helpers";
+import { revealAll, showEngine } from "./helpers";
 const current = (page: Page) =>
   page.evaluate(
     () =>
@@ -84,6 +84,7 @@ test("preferences, saved history and refresh never redraw; delete and clear work
     "result-tarot",
   );
   await page.reload();
+  await showEngine(page, "tarot");
   await expect(page.getByTestId("result-tarot")).toBeVisible();
   expect((await current(page)).reading).toEqual(original);
   await page.getByRole("button", { name: /本机记录/ }).click();
@@ -150,7 +151,7 @@ test("offline calculation, source library and offline refresh after caching", as
   await context.setOffline(true);
   await page.getByLabel("出生日期").fill("1998-06-15");
   await page.getByRole("button", { name: "开启这次探索" }).click();
-  await expect(page.locator(".result-card")).toHaveCount(5);
+  await expect(page.locator(".result-card")).toHaveCount(1);
   await revealAll(page);
   const first = (await current(page)).reading;
   expect(

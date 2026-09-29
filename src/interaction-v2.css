@@ -1,0 +1,690 @@
+/* A frozen deck, six frozen coin rounds and three sealed stones: presentation only. */
+.tarot-deck,
+.coin-ritual,
+.rune-bag {
+  margin: 24px 0 18px;
+}
+.interaction-eyebrow {
+  display: block;
+  font-size: 0.61rem;
+  font-family: Georgia, serif;
+  letter-spacing: 0.2em;
+  opacity: 0.72;
+}
+.deck-heading,
+.coin-ritual-heading,
+.rune-bag-heading {
+  text-align: center;
+  margin: 0 0 24px;
+}
+.deck-heading h4,
+.coin-ritual-heading h4,
+.rune-bag-heading h4 {
+  margin: 7px 0 8px;
+  color: var(--engine-ink);
+  font-family: Georgia, "Songti SC", SimSun, serif;
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+.deck-heading p,
+.coin-ritual-heading p,
+.rune-bag-heading p {
+  margin: 0;
+  color: var(--engine-muted);
+  font-size: 0.79rem;
+}
+.deck-chosen-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 21px;
+  width: min(100%, 585px);
+  margin: 0 auto 28px;
+  text-align: center;
+}
+.deck-chosen {
+  min-width: 0;
+}
+.result-card .tarot-deck .deck-result-face,
+.deck-empty-place {
+  width: 100%;
+  max-width: 148px;
+  height: 191px;
+  margin: 0 auto 12px;
+}
+.deck-empty-place {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #a27aaf70;
+  border-radius: 36px 36px 7px 7px;
+  color: #bb98c578;
+  background: radial-gradient(ellipse at 50% 45%, #835c931c, transparent 70%);
+}
+.deck-empty-place > span {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+.deck-empty-place > i {
+  position: absolute;
+  bottom: 15px;
+  font:
+    normal 0.7rem Georgia,
+    serif;
+}
+.deck-chosen strong {
+  display: block;
+  font-weight: 500;
+  font-size: 0.86rem;
+  color: #ead5ef;
+}
+.deck-chosen small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.69rem;
+  color: #c9acd5;
+}
+.deck-chosen.is-empty strong {
+  color: #b69bc3;
+  font-size: 0.74rem;
+}
+.deck-chosen.is-empty small {
+  opacity: 0.6;
+}
+.deck-result-face {
+  animation: deck-face-arrive 520ms cubic-bezier(0.2, 0.7, 0.25, 1) both;
+  transform-origin: center;
+  backface-visibility: hidden;
+}
+.deck-pool-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 0 3px 12px;
+  color: #edcf9a;
+  font-family: Georgia, "Songti SC", SimSun, serif;
+  font-size: 0.91rem;
+  letter-spacing: 0.08em;
+}
+.deck-pool-heading small {
+  color: #baa1c8;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0;
+}
+.deck-pool {
+  display: grid;
+  grid-template-columns: repeat(13, minmax(44px, 1fr));
+  gap: 8px;
+  max-height: 385px;
+  padding: 14px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-color: #9b769f #291b38;
+  overscroll-behavior: contain;
+  border: 1px solid #78588a;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 50% 15%, #68497842, transparent 70%), #190f2594;
+  box-shadow: inset 0 5px 20px #0f071a4f;
+}
+.tarot-deck .deck-pick {
+  display: block;
+  position: relative;
+  min-width: 44px;
+  min-height: 60px;
+  width: 100%;
+  aspect-ratio: 52 / 76;
+  padding: 1px;
+  border: 1px solid #b18b62;
+  border-radius: 6px;
+  color: #d7b77d;
+  background:
+    repeating-linear-gradient(45deg, #caa2d80a 0 1px, transparent 1px 5px),
+    linear-gradient(135deg, #4d355d, #271c3b);
+  box-shadow: 0 3px 7px #0c041c40;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+  touch-action: manipulation;
+}
+.deck-pick > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.tarot-deck .deck-pick:not(:disabled):hover {
+  z-index: 1;
+  transform: translateY(-4px);
+  border-color: #f1d298;
+  box-shadow:
+    0 7px 15px #0c041c77,
+    0 0 10px #ddbd8624;
+}
+.tarot-deck .deck-pick:focus-visible {
+  outline: 2px solid #f6d399;
+  outline-offset: 3px;
+  z-index: 2;
+}
+.tarot-deck .deck-pick:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.tarot-deck .deck-pick.is-picked {
+  opacity: 1;
+  border-color: #e6c88d;
+  background: #24172d;
+  box-shadow: inset 0 0 0 2px #e6c88d20;
+}
+.deck-pick.is-picked > svg {
+  opacity: 0.15;
+}
+.deck-picked-mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: Georgia, serif;
+  font-size: 1.25rem;
+  color: #f3d59c;
+}
+.deck-scroll-hint {
+  margin: 11px 0 0;
+  text-align: center;
+  color: #bba1c9;
+  font-size: 0.69rem;
+}
+
+/* One click reveals one coin round; only completed rounds enter the visible figure. */
+.coin-ritual {
+  color: #95682f;
+}
+.coin-ritual-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(165px, 1fr);
+  gap: 34px;
+  align-items: center;
+  width: min(100%, 720px);
+  margin: 0 auto;
+}
+.coin-tableau {
+  min-width: 0;
+  text-align: center;
+}
+.coin-ritual .coin-cast-button {
+  display: block;
+  width: 100%;
+  padding: 4px 7px 16px;
+  border: 1px solid #dcc39c;
+  border-radius: 90px 90px 14px 14px / 40px 40px 14px 14px;
+  color: #9b713b;
+  background: radial-gradient(ellipse at 50% 40%, #fffdf0, #f6ead080);
+  box-shadow: inset 0 0 0 5px #fffaf05c;
+  touch-action: manipulation;
+}
+.coin-cast-button > svg {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  margin: 0 auto;
+}
+.coin-ritual .coin-cast-button:hover:not(:disabled) {
+  border-color: #a87b3e;
+  background-color: #fff6df;
+}
+.coin-ritual .coin-cast-button:disabled {
+  color: #9b713b;
+  opacity: 1;
+  cursor: default;
+}
+.coin-casting-mat {
+  fill: #e8d7ac6b;
+  stroke: #bea36c9c;
+}
+.coin-cast-three {
+  --coin-fill: #e4c27d;
+  --coin-hole: #fff4d9;
+  stroke: #96703b;
+}
+.coin-cast-three .coin-face {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.is-rolling .coin-cast-three .coin-face {
+  animation: ritual-six-coins 800ms ease-out both;
+}
+.is-rolling .coin-cast-three > g:nth-child(2) .coin-face {
+  animation-delay: 60ms;
+}
+.is-rolling .coin-cast-three > g:nth-child(3) .coin-face {
+  animation-delay: 120ms;
+}
+.interaction-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  min-height: 44px;
+  padding: 6px 15px;
+  border: 1px solid currentColor;
+  border-radius: 24px;
+  font-size: 0.79rem;
+  letter-spacing: 0.04em;
+}
+.coin-latest {
+  min-height: 83px;
+  padding-top: 14px;
+}
+.coin-latest p {
+  margin: 7px 0 0;
+  font-size: 0.75rem;
+  color: #806947;
+}
+.coin-values {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+.coin-values > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #b99659;
+  border-radius: 50%;
+  color: #815b27;
+  background: #eed8a5;
+  font:
+    0.83rem Georgia,
+    serif;
+}
+.coin-values > b {
+  margin-left: 3px;
+  font:
+    1.15rem Georgia,
+    serif;
+}
+.coin-building-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 45px;
+  padding: 25px 14px;
+  list-style: none;
+  border-block: 1px solid #d8c29e;
+  background: linear-gradient(90deg, transparent, #f0e2c444, transparent);
+}
+.coin-building-lines .coin-building-line {
+  display: grid;
+  grid-template-columns: 30px minmax(48px, 1fr) 26px;
+  gap: 10px;
+  align-items: center;
+  min-height: 23px;
+  margin: 0;
+}
+.coin-line-name {
+  color: #958365;
+  font-size: 0.68rem;
+}
+.coin-line-strokes {
+  display: flex;
+  gap: 0;
+  height: 7px;
+}
+.coin-line-strokes i {
+  flex: 1;
+  border-block: 1px dashed #c5b18e80;
+}
+.is-shown .coin-line-strokes i {
+  border: 0;
+  background: #685b42;
+}
+.coin-line-strokes.is-yin {
+  gap: 15px;
+}
+.is-moving .coin-line-strokes i {
+  background: #ae4937;
+}
+.coin-line-value {
+  position: relative;
+  color: #a79272;
+  font:
+    0.92rem Georgia,
+    serif;
+}
+.is-shown .coin-line-value {
+  color: #7b6038;
+}
+.coin-line-value > small {
+  position: absolute;
+  left: 15px;
+  top: 1px;
+  color: #ac4333;
+  font:
+    0.57rem "Microsoft YaHei",
+    sans-serif;
+}
+.interaction-progress {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--engine-rule);
+  color: var(--engine-muted);
+  text-align: center;
+  font-size: 0.75rem;
+}
+.coin-ritual .interaction-skip,
+.rune-bag .interaction-skip {
+  min-height: 44px;
+  padding: 6px 12px;
+  margin: 0 auto 5px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-size: 0.72rem;
+}
+.coin-ritual .interaction-skip:hover,
+.rune-bag .interaction-skip:hover {
+  border-color: var(--engine-rule);
+  background: var(--engine-soft);
+}
+
+/* The cloth bag yields three plain stones; their glyphs remain in RuneReveal. */
+.rune-bag {
+  text-align: center;
+  color: #b4d0aa;
+}
+.rune-bag .rune-bag-trigger {
+  display: block;
+  width: min(100%, 390px);
+  margin: 0 auto 22px;
+  padding: 0 16px 20px;
+  border: 1px solid #607d66;
+  border-radius: 46% 46% 16px 16px / 20% 20% 16px 16px;
+  color: #c2d4a5;
+  background: radial-gradient(ellipse at 50% 50%, #43654935, #10251f55);
+  box-shadow: inset 0 0 0 5px #81917408;
+  touch-action: manipulation;
+}
+.rune-bag .rune-bag-trigger:hover:not(:disabled) {
+  border-color: #a9bf8f;
+  background-color: #294a3b;
+}
+.rune-bag .rune-bag-trigger:disabled {
+  opacity: 1;
+  cursor: wait;
+}
+.rune-bag-scene {
+  display: block;
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+.rune-bag-scene > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.rune-cloth-bag {
+  transform-origin: 160px 190px;
+}
+.is-drawing .rune-cloth-bag {
+  animation: rune-bag-rustle 780ms ease-in-out both;
+}
+.rune-emerging-stone {
+  position: absolute;
+  top: 19%;
+  left: 41%;
+  width: 18%;
+  animation: rune-from-bag 800ms ease-out both;
+}
+.rune-emerging-stone svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.rune-bag-stones {
+  width: min(100%, 650px);
+  margin: 0 auto;
+  gap: 22px;
+}
+.rune-waiting-stone {
+  min-width: 0;
+}
+.rune-stone-place {
+  display: grid;
+  place-items: center;
+  width: min(100%, 104px);
+  height: 108px;
+  margin: 0 auto 11px;
+  border: 1px dashed #77947b66;
+  border-radius: 45% 36% 30% 37% / 31% 38% 30% 32%;
+  color: #829e80;
+}
+.rune-stone-place > span {
+  font-size: 2.3rem;
+  opacity: 0.55;
+}
+.rune-stone-place > svg {
+  width: 86px;
+  max-width: 100%;
+  height: 101px;
+}
+.is-drawn .rune-stone-place {
+  border-color: transparent;
+  animation: rune-stone-land 340ms ease-out both;
+}
+.rune-waiting-stone strong {
+  display: block;
+  font-weight: 500;
+  color: #c6dcc0;
+  font-size: 0.79rem;
+}
+.rune-waiting-stone small {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.65rem;
+  color: #9cb79c;
+}
+.rune-bag .rune-bag-trigger:focus-visible,
+.coin-ritual .coin-cast-button:focus-visible {
+  outline: 3px solid var(--engine-accent);
+  outline-offset: 5px;
+}
+@keyframes deck-face-arrive {
+  from {
+    transform: perspective(700px) rotateY(85deg) translateY(5px);
+    opacity: 0.5;
+  }
+  to {
+    transform: perspective(700px) rotateY(0deg) translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes ritual-six-coins {
+  0% {
+    transform: translateY(0) rotateY(0);
+  }
+  35% {
+    transform: translateY(-21px) rotateY(290deg) rotate(-10deg);
+  }
+  80% {
+    transform: translateY(-7px) rotateY(600deg) rotate(5deg);
+  }
+  100% {
+    transform: translateY(0) rotateY(720deg);
+  }
+}
+@keyframes rune-bag-rustle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(-4deg);
+  }
+  45% {
+    transform: rotate(4deg);
+  }
+  70% {
+    transform: rotate(-2deg);
+  }
+}
+@keyframes rune-from-bag {
+  0% {
+    transform: translate(0, 14px) scale(0.6);
+    opacity: 0;
+  }
+  35% {
+    transform: translate(2px, -37px) rotate(-15deg) scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(95px, 67px) rotate(18deg) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes rune-stone-land {
+  from {
+    transform: translateY(-8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@media (max-width: 1000px) {
+  .deck-pool {
+    grid-template-columns: repeat(10, minmax(44px, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .deck-pool {
+    grid-template-columns: repeat(8, minmax(44px, 1fr));
+    gap: 7px;
+  }
+  .coin-ritual-layout {
+    gap: 20px;
+  }
+}
+@media (max-width: 600px) {
+  .deck-pool {
+    grid-template-columns: repeat(6, minmax(44px, 1fr));
+    gap: 6px;
+    padding: 10px;
+  }
+  .coin-ritual-layout {
+    grid-template-columns: minmax(0, 1.4fr) minmax(115px, 1fr);
+    gap: 13px;
+  }
+  .coin-building-lines {
+    padding: 17px 3px;
+    gap: 12px;
+  }
+  .coin-building-lines .coin-building-line {
+    grid-template-columns: 25px minmax(30px, 1fr) 18px;
+    gap: 5px;
+  }
+  .coin-line-name {
+    font-size: 0.6rem;
+  }
+  .coin-line-value > small {
+    left: 11px;
+    font-size: 0.5rem;
+  }
+  .coin-line-strokes.is-yin {
+    gap: 10px;
+  }
+  .coin-ritual .coin-cast-button {
+    padding-inline: 0;
+  }
+  .coin-ritual .interaction-cta {
+    padding: 6px 9px;
+    gap: 5px;
+    font-size: 0.68rem;
+  }
+  .coin-values {
+    gap: 5px;
+  }
+  .coin-values > span {
+    width: 22px;
+    height: 22px;
+  }
+  .coin-latest p {
+    font-size: 0.67rem;
+  }
+}
+@media (max-width: 440px) {
+  .deck-chosen-row {
+    gap: 12px;
+  }
+  .result-card .tarot-deck .deck-result-face,
+  .deck-empty-place {
+    height: 152px;
+  }
+  .deck-empty-place {
+    border-radius: 28px 28px 6px 6px;
+  }
+  .deck-chosen strong {
+    font-size: 0.77rem;
+  }
+  .deck-chosen.is-empty strong {
+    font-size: 0.65rem;
+  }
+  .deck-chosen small {
+    font-size: 0.62rem;
+  }
+  .deck-pool {
+    gap: 5px;
+    padding: 8px;
+  }
+  .deck-heading h4,
+  .coin-ritual-heading h4,
+  .rune-bag-heading h4 {
+    font-size: 1.1rem;
+  }
+  .deck-heading p,
+  .coin-ritual-heading p,
+  .rune-bag-heading p {
+    font-size: 0.71rem;
+  }
+  .rune-bag-stones {
+    gap: 10px;
+  }
+  .rune-waiting-stone strong {
+    font-size: 0.71rem;
+  }
+  .rune-waiting-stone small {
+    font-size: 0.58rem;
+  }
+}
+@media (max-width: 380px) {
+  .deck-pool {
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
+  }
+}
+.motion-paused :is(.tarot-deck, .coin-ritual, .rune-bag) *,
+.interaction-motion-paused * {
+  animation: none !important;
+  transition: none !important;
+}
+.motion-paused .tarot-deck .deck-pick:not(:disabled):hover,
+.interaction-motion-paused .deck-pick:not(:disabled):hover {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.tarot-deck, .coin-ritual, .rune-bag) * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .tarot-deck .deck-pick:not(:disabled):hover {
+    transform: none;
+  }
+}

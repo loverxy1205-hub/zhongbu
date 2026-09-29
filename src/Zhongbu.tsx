@@ -9,11 +9,19 @@ import type {
   AiEnhancement,
 } from "./types";
 import { ENGINES, ENGINE_IDS } from "./data/meta";
-import { createReading, deepFreeze } from "./engines/reading";
+import { deepFreeze } from "./engines/reading";
+import {
+  createJourney,
+  pickTarot,
+  advanceCoinRound,
+  drawRuneStone,
+} from "./lib/journey";
+import { BirthdayMemory } from "./components/BirthdayMemory";
+import { readBirthdayMemory } from "./lib/birthdayMemory";
+import { FeedbackForm } from "./components/FeedbackForm";
 import { detectTimezone, todayLocal } from "./lib/dates";
 import {
   clearHistory,
-  defaultPreferences,
   getBrowserStorage,
   loadHistory,
   loadSession,
@@ -40,6 +48,7 @@ import "./engine-themes.css";
 import "./experience.css";
 import "./ritual.css";
 import "./journey.css";
+import "./chapters.css";
 const initialInput = (): Input => ({
   question: "",
   mode: "explore",
@@ -70,21 +79,29 @@ function restoreHistory() {
 export default function Zhongbu() {
   const [initialSession] = useState(restoreSession),
     [initialHistory] = useState(restoreHistory);
+  const [initialBirthday] = useState(() => readBirthdayMemory());
   const [active, setActive] = useState<SavedReading | null>(
       initialSession.value,
     ),
     [history, setHistory] = useState<SavedReading[]>(initialHistory.value);
-  const [input, setInput] = useState<Input>(initialInput),
+  const [input, setInput] = useState<Input>(() => ({
+      ...initialInput(),
+      birthday: initialBirthday.value || "",
+    })),
     [page, setPage] = useState<"reading" | "history" | "library">("reading");
   const [view, setView] = useState<"all" | "summary" | "personal">("all"),
     [notice, setNotice] = useState(
-      initialSession.error || initialHistory.error || "",
+      initialSession.error ||
+        initialHistory.error ||
+        initialBirthday.error ||
+        "",
     );
   const [historyError, setHistoryError] = useState(!!initialHistory.error),
     [formError, setFormError] = useState("");
   const [drawing, setDrawing] = useState(false),
     [onlyFavorites, setOnlyFavorites] = useState(false),
     [confirmClear, setConfirmClear] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
   const [motionPaused, setMotionPaused] = useState(
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
@@ -221,20 +238,14 @@ export default function Zhongbu() {
     lock.current = true;
     setFormError("");
     try {
-      const reading = createReading(
+      const journey = createJourney(
         { ...input, reversals: true },
         new Date().toISOString(),
       );
-      activate({
-        reading,
-        tarotRevealed: [],
-        runeRevealed: [],
-        engineRevealed: [],
-        preferences: defaultPreferences(reading),
-        savedAt: "",
-      });
+      activate(journey);
       update("birthday", "");
       setView("all");
+      setShowComparison(false);
       setOnlyFavorites(false);
       setDrawing(!motionPaused);
     } catch (error) {
@@ -250,7 +261,7 @@ export default function Zhongbu() {
       const { category: _category, ...values } = previous;
       setInput({
         ...values,
-        birthday: "",
+        birthday: readBirthdayMemory().value || "",
         action: "",
         reversals: true,
         options: previous.options
@@ -265,6 +276,7 @@ export default function Zhongbu() {
     setActive(null);
     setDrawing(false);
     setPage("reading");
+    setShowComparison(false);
     setFormError("");
     try {
       getBrowserStorage("sessionStorage").removeItem(SESSION_KEY);
@@ -313,6 +325,36 @@ export default function Zhongbu() {
     active.reading.results.every((result) =>
       isEngineRevealed(active, result.engine),
     );
+  const currentEngine = displayed.some((r) => r.engine === active?.activeEngine)
+    ? active?.activeEngine
+    : displayed[0]?.engine;
+  const chapterResults = showComparison
+    ? displayed
+    : displayed.filter((r) => r.engine === currentEngine);
+  const chapterIndex = displayed.findIndex((r) => r.engine === currentEngine);
+  const nextEngine = displayed[chapterIndex + 1]?.engine;
+  function progress(updateValue: (current: SavedReading) => SavedReading) {
+    const current = activeRef.current;
+    if (!current || current.reading.readingId !== readingKey) return;
+    const next = updateValue(current);
+    if (next === current) return;
+    activate(next);
+    if (
+      historyRef.current.some(
+        (h) => h.reading.readingId === current.reading.readingId,
+      )
+    )
+      save(next, true);
+  }
+  function turnChapter(engine: EngineId) {
+    progress((current) => ({ ...current, activeEngine: engine }));
+    setView("all");
+    setShowComparison(false);
+    requestAnimationFrame(() => {
+      heading.current?.focus();
+      heading.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+  }
   return (
     <div className={`app-shell ${motionPaused ? "motion-paused" : ""}`}>
       <a className="skip-link" href="#main">
@@ -449,6 +491,7 @@ export default function Zhongbu() {
                           setView("all");
                           setOnlyFavorites(false);
                           setDrawing(false);
+                          setShowComparison(false);
                         }}
                       >
                         打开原记录
@@ -603,6 +646,7 @@ export default function Zhongbu() {
                       onClick={() => {
                         setOnlyFavorites(false);
                         setView("all");
+                        setShowComparison(true);
                       }}
                     >
                       查看全部
@@ -622,8 +666,40 @@ export default function Zhongbu() {
                     </button>
                   </div>
                 </div>
-                <div className="results-grid">
-                  {displayed.map((r) => (
+                <nav className="chapter-nav" aria-label="占卜体系分页">
+                  {displayed.map((result, index) => (
+                    <button
+                      key={result.engine}
+                      className="chapter-tab"
+                      aria-current={
+                        !showComparison && currentEngine === result.engine
+                          ? "page"
+                          : undefined
+                      }
+                      onClick={() => turnChapter(result.engine)}
+                      data-testid={`chapter-${result.engine}`}
+                    >
+                      <span className="chapter-icon" aria-hidden="true">
+                        {ENGINES[result.engine].icon}
+                      </span>
+                      <span>
+                        {ENGINES[result.engine].short}
+                        <small>
+                          {index + 1} / {displayed.length} ·{" "}
+                          {result.status === "unavailable"
+                            ? "本次不可用"
+                            : isEngineRevealed(active, result.engine)
+                              ? "已揭晓"
+                              : "待开启"}
+                        </small>
+                      </span>
+                    </button>
+                  ))}
+                </nav>
+                <div
+                  className={`results-grid ${showComparison ? "" : "chapter-single"}`}
+                >
+                  {chapterResults.map((r) => (
                     <div
                       className={`result-stack result-stack-${r.engine}`}
                       key={`${readingKey}:${r.engine}`}
@@ -640,6 +716,18 @@ export default function Zhongbu() {
                         engineRevealed={isEngineRevealed(active, r.engine)}
                         onRevealEngine={() => reveal(r.engine)}
                         motionPaused={motionPaused}
+                        journey={active}
+                        onPickSlot={(slot) =>
+                          progress((current) => pickTarot(current, slot))
+                        }
+                        onCoinRound={(index) =>
+                          progress((current) =>
+                            advanceCoinRound(current, index),
+                          )
+                        }
+                        onDrawRune={(index) =>
+                          progress((current) => drawRuneStone(current, index))
+                        }
                       />
                       {r.status === "ok" &&
                         isEngineRevealed(active, r.engine) && (
@@ -660,6 +748,29 @@ export default function Zhongbu() {
                     本次尚未收藏解读。选择“查看全部”继续比较。
                   </div>
                 )}
+                {!showComparison && nextEngine && (
+                  <button
+                    className="chapter-next"
+                    onClick={() => turnChapter(nextEngine)}
+                  >
+                    <span className="chapter-icon" aria-hidden="true">
+                      {ENGINES[nextEngine].icon}
+                    </span>
+                    <span>
+                      <small>下一个视角</small>点击开启
+                      {ENGINES[nextEngine].short} →
+                    </span>
+                  </button>
+                )}
+                {!showComparison && !nextEngine && displayed.length > 0 && (
+                  <button
+                    className="chapter-next"
+                    disabled={!allRevealed}
+                    onClick={() => setView("summary")}
+                  >
+                    <span aria-hidden="true">✦</span>查看各家汇总 →
+                  </button>
+                )}
               </>
             ) : (
               <SummaryView
@@ -669,6 +780,11 @@ export default function Zhongbu() {
                 onScope={(id) => toggle("included", id)}
               />
             )}
+            <FeedbackForm
+              key={readingKey}
+              question={active.reading.input.question}
+              engine={showComparison ? undefined : currentEngine}
+            />
           </section>
         ) : (
           <>
@@ -850,7 +966,7 @@ export default function Zhongbu() {
                     问卜时刻与时区 <span>{input.timezone}</span>
                   </summary>
                   <p>
-                    问卜时刻在提交时捕获并冻结。梅花用这个时刻，数字命理用目标日期。
+                    问卜时刻在提交时捕获并冻结，梅花用这个时刻起卦。生日九宫格使用你填写的出生日期。
                   </p>
                   <label className="field">
                     时区（IANA 标识）
@@ -948,6 +1064,13 @@ export default function Zhongbu() {
                     </label>
                   )}
                 </div>
+                {input.engines.includes("numerology") && (
+                  <BirthdayMemory
+                    birthday={input.birthday}
+                    today={todayLocal()}
+                    onForgot={() => update("birthday", "")}
+                  />
+                )}
                 {formError && (
                   <p className="form-error" role="alert">
                     {formError}
@@ -958,7 +1081,7 @@ export default function Zhongbu() {
                   <span>→</span>
                 </button>
                 <p className="submit-note">
-                  一次提交，一份固定结果。只有“再问一次”才会创建新记录。
+                  塔罗由你亲手选三张，其余体系在提交时起卦。选定后，刷新与翻页不会重抽。
                 </p>
               </form>
               <aside className="side-notes">

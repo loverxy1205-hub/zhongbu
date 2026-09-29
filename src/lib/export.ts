@@ -1,6 +1,7 @@
 import type { EngineResult, Reading, SavedReading } from "../types";
 import { ENGINES, DISCLAIMER } from "../data/meta";
 export function resultMarkdown(r: EngineResult) {
+  if(r.status === "pending") return `## ${ENGINES[r.engine].name}\n等待亲手选完三张牌，尚未形成解读。`;
   if (!r.interpretation)
     return `## ${ENGINES[r.engine].name}\n不可用：${r.error}`;
   const i = r.interpretation;

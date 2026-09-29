@@ -5,7 +5,7 @@ import { cryptoWord, readingId } from "../lib/random";
 import type { RandomSource } from "../lib/random";
 import {
   calculateMeihua,
-  calculateNumbers,
+  calculateNumberMatrix,
   drawCoins,
   drawRunes,
   drawTarot,
@@ -22,6 +22,7 @@ export function createReading(
   input: Input,
   askedAt = new Date().toISOString(),
   rng: RandomSource = cryptoWord,
+  interactiveTarot = false,
 ): Reading {
   parseDate(input.targetDate);
   if (!input.engines.length) throw Error("请至少选择一套占卜体系");
@@ -56,6 +57,12 @@ export function createReading(
   const results: EngineResult[] = ENGINE_IDS.filter((e) =>
     publicInput.engines.includes(e),
   ).map((engine) => {
+    if (engine === "tarot" && interactiveTarot)
+      return {
+        engine,
+        methodVersion: ENGINES[engine].version,
+        status: "pending",
+      };
     try {
       let raw: Raw;
       switch (engine) {
@@ -72,9 +79,8 @@ export function createReading(
           raw = calculateMeihua(askedAt, input.timezone);
           break;
         case "numerology":
-          raw = calculateNumbers(
+          raw = calculateNumberMatrix(
             input.birthday,
-            input.targetDate,
             askedAt,
             input.timezone,
           );

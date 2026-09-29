@@ -9,7 +9,7 @@ import type {
 } from "../types";
 import { TAROT } from "../data/tarot";
 import { RUNES } from "../data/runes";
-import { NUMBERS } from "../data/numbers";
+import { MATRIX_NUMBERS, NUMBERS } from "../data/numbers";
 import { hexByCode } from "../data/hexagrams";
 import { SOURCES } from "../data/meta";
 import { renderEvidence, renderPosition, renderReflection } from "./renderText";
@@ -113,6 +113,32 @@ export function interpret(raw: Raw, input: PublicInput): Interpretation {
             "本站抽取约定：无放回抽三张；开启逆位时每张独立以 50% 概率逆位。阻力位不直接作为行动建议。",
           ]
         : ["无放回抽三枚；没有空白符，没有逆位。"];
+  } else if (raw.kind === "numerology-matrix") {
+    const focused = [...raw.cells]
+      .filter((cell) => cell.count > 0)
+      .sort((a, b) => b.count - a.count || a.digit - b.digit)
+      .slice(0, 2);
+    focused.forEach((cell, index) => {
+      const e = MATRIX_NUMBERS[cell.digit - 1];
+      entries.push(e);
+      themes.push(...e.themes);
+      paragraphs.push(
+        renderEvidence(
+          `${index === 0 ? "主视角" : "补充视角"} · ${e.name}`,
+          `${cell.count > 1 ? "这个数字在格中重复出现，本次把它作为优先观察的象征。" : "这个数字出现在格中，本次借它打开一个观察角度。"}${e.meaning}`,
+          e.id,
+          "matrix-focus-v1",
+          "matrix-focus-text-v1",
+        ),
+      );
+    });
+    headline = `这张九宫格以「${entries.map((entry) => entry.keywords[0]).join("、")}」为本次观察入口；重复与留白只是图案的不同节奏。`;
+    hint = [...themes];
+    extraLimits = [
+      "先选出现次数较多的至多两个数字作为主题；次数相同按数字升序展示，这只是固定的阅读顺序，不代表高低优劣。",
+      "空格不表示能力缺失，重复不表示能力更强。不加入四工作数、连线评分或健康、智商、财富判断。",
+      "九宫格只使用生日，与目标日期无关；同一生日不会因为再问一次而变化。原始生日不写入结果，格数仍是生日派生的个人数据。",
+    ];
   } else if (raw.kind === "numerology") {
     const values = [raw.life, raw.year, raw.month, raw.day],
       labels = ["生命数字", "个人年", "个人月", "个人日"];

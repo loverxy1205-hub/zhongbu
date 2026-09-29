@@ -92,7 +92,14 @@ export type NumberRaw = {
   day: number;
   trace: string[];
 };
-export type Raw = TarotRaw | RuneRaw | IChingRaw | MeihuaRaw | NumberRaw;
+export type MatrixDigit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+/** Derived counts only. Never include the source date or ordered birth digits. */
+export type NumberMatrixRaw = {
+  kind: "numerology-matrix";
+  cells: { digit: MatrixDigit; count: number }[];
+  trace: string[];
+};
+export type Raw = TarotRaw | RuneRaw | IChingRaw | MeihuaRaw | NumberRaw | NumberMatrixRaw;
 export interface Paragraph {
   label: string;
   text: string;
@@ -115,7 +122,7 @@ export interface Interpretation {
 export interface EngineResult {
   engine: EngineId;
   methodVersion: string;
-  status: "ok" | "unavailable";
+  status: "ok" | "unavailable" | "pending";
   error?: string;
   raw?: Raw;
   interpretation?: Interpretation;
@@ -148,6 +155,11 @@ export interface SavedReading {
   tarotRevealed?: number[];
   runeRevealed?: number[];
   engineRevealed?: SingleRevealEngine[];
+  tarotDeck?: { id: string; reversed: boolean }[];
+  tarotPicked?: number[];
+  coinRounds?: number;
+  runeDrawn?: number;
+  activeEngine?: EngineId;
   enhancements?: Partial<Record<EngineId, AiEnhancement>>;
 }
 export interface AiEnhancement {

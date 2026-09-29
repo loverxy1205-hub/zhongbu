@@ -2,7 +2,8 @@ import { test, expect, devices } from "@playwright/test";
 import type { Page, Route } from "@playwright/test";
 import type { AiRequest, AiResponse } from "../../shared/ai-contract";
 import type { SavedReading } from "../../src/types";
-import { revealAll } from "./helpers";
+import { revealAll, showEngine } from "./helpers";
+import type { FeedbackRequest } from "../../shared/feedback-contract";
 
 const endpoint = "http://127.0.0.1:5174/test-ai/interpret";
 const question = "我想先不联系对方，怎样理解自己的边界？";
@@ -133,6 +134,7 @@ test("AI runs only on explicit click; double click, restoration and exports pres
   expect(generated.reading).not.toHaveProperty("enhancements");
   expect(Object.keys(generated.enhancements!)).toEqual(["tarot"]);
   await page.reload();
+  await showEngine(page, "tarot");
   await expect(page.getByTestId("ai-tarot").locator(".ai-prose")).toHaveText(
     answer.text,
   );
@@ -367,3 +369,224 @@ test.describe("mobile browsers with older AbortSignal support", () => {
     expect((await current(page)).enhancements?.tarot?.response).toEqual(answer);
   });
 });
+
+test("matrix advice sends selected themes without birthday, full cell counts or other engines", async ({
+  page,
+}) => {
+  const requests: AiRequest[] = [];
+  await page.route(endpoint, async (route) => {
+    requests.push(route.request().postDataJSON() as AiRequest);
+    await complete(route);
+  });
+  await start(page);
+  const original = (await current(page)).reading;
+  await page
+    .getByTestId("ai-numerology")
+    .getByRole("button", { name: "获取针对问题的建议" })
+    .click();
+  await expect(
+    page.getByTestId("ai-numerology").locator(".ai-prose"),
+  ).toBeVisible();
+  expect(requests).toHaveLength(1);
+  expect(requests[0].engine).toBe("numerology");
+  expect(requests[0].evidence.methodVersion).toContain("九宫格");
+  expect(requests[0].evidence.themes.length).toBeLessThanOrEqual(2);
+  expect(requests[0].context.options).toEqual(options);
+  expect(JSON.stringify(requests[0])).not.toMatch(
+    /1998-06-15|"cells"|"missing"|"birthday"|出现\s*\d\s*次/,
+  );
+  expect((await current(page)).reading).toEqual(original);
+});
+
+test("AI abuse restriction clearly shows 24 hours and the release time while preserving local results", async ({
+  page,
+}) => {
+  const blockedUntil = new Date(Date.now() + 86400000).toISOString();
+  let calls = 0;
+  await page.route(endpoint, async (route) => {
+    calls++;
+    await route.fulfill({
+      status: 429,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "异常请求",
+        code: "ABUSE_BLOCKED",
+        blockedUntil,
+        retryAfterSeconds: 86400,
+      }),
+    });
+  });
+  await start(page);
+  const original = (await current(page)).reading;
+  const panel = page.getByTestId("ai-tarot");
+  await panel.getByRole("button", { name: "获取针对问题的建议" }).click();
+  const localTime = await page.evaluate(
+    (value) => new Date(value).toLocaleString("zh-CN"),
+    blockedUntil,
+  );
+  await expect(panel.getByRole("status")).toContainText("24小时");
+  await expect(panel.getByRole("status")).toContainText(localTime);
+  await expect(panel.getByRole("status")).toContainText("本地占卜仍可使用");
+  expect(calls).toBe(1);
+  expect((await current(page)).reading).toEqual(original);
+  expect((await current(page)).enhancements).toBeUndefined();
+});
+
+const feedbackEndpoint = "http://127.0.0.1:5174/test-ai/feedback";
+const receipt = {
+  id: "1c55c3b6-f0e7-44d7-8f80-907371d7a5ec",
+  receivedAt: "2026-09-29T12:00:00.000Z",
+};
+async function openFeedback(page: Page) {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await page.getByLabel("你的问题").fill(question);
+  await page.getByLabel("出生日期").fill("1998-06-15");
+  await page.getByRole("button", { name: "开启这次探索" }).click();
+  const panel = page.getByTestId("feedback-panel");
+  await expect(panel).toBeVisible();
+  await panel.locator("summary").click();
+  return panel;
+}
+
+test("feedback sends only explicit text by default, prevents duplicate submits and attaches the question only with consent", async ({
+  page,
+}) => {
+  const requests: FeedbackRequest[] = [];
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(feedbackEndpoint, async (route) => {
+    requests.push(route.request().postDataJSON() as FeedbackRequest);
+    await pending;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(receipt),
+    });
+  });
+  const panel = await openFeedback(page);
+  const original = (await current(page)).reading;
+  expect(requests).toEqual([]);
+  await expect(
+    panel.getByLabel("附上本次问题，方便理解反馈"),
+  ).not.toBeChecked();
+  await panel
+    .getByRole("textbox", { name: "你的意见", exact: true })
+    .fill("希望抽牌时可以更容易返回上一页。");
+  await panel.locator("form").evaluate((form) => {
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+  });
+  await expect.poll(() => requests.length).toBe(1);
+  await expect(panel.getByRole("button", { name: "正在提交…" })).toBeDisabled();
+  expect(requests[0]).toMatchObject({
+    kind: "建议",
+    message: "希望抽牌时可以更容易返回上一页。",
+    engine: "tarot",
+  });
+  expect(Object.keys(requests[0]).sort()).toEqual([
+    "appVersion",
+    "engine",
+    "kind",
+    "message",
+  ]);
+  expect(JSON.stringify(requests[0])).not.toContain(question);
+  expect(JSON.stringify(requests[0])).not.toContain("1998-06-15");
+  release();
+  await expect(panel.getByRole("status")).toContainText("反馈已送达");
+  await expect(
+    panel.getByRole("textbox", { name: "你的意见", exact: true }),
+  ).toHaveValue("");
+  await panel
+    .getByRole("combobox", { name: "反馈类型", exact: true })
+    .selectOption("问题");
+  await panel
+    .getByRole("textbox", { name: "你的意见", exact: true })
+    .fill("附上问题方便复核这个显示问题。");
+  await panel.getByLabel("附上本次问题，方便理解反馈").check();
+  await expect(panel.locator("blockquote")).toHaveText(question);
+  await panel.getByRole("button", { name: "提交反馈", exact: true }).click();
+  await expect.poll(() => requests.length).toBe(2);
+  expect(requests[1].question).toBe(question);
+  expect(requests[1].kind).toBe("问题");
+  expect(JSON.stringify(requests[1])).not.toContain("1998-06-15");
+  await expect(panel.getByRole("status")).toContainText("反馈已送达");
+  await expect(
+    panel.getByLabel("附上本次问题，方便理解反馈"),
+  ).not.toBeChecked();
+  expect((await current(page)).reading).toEqual(original);
+});
+
+for (const blocked of [false, true]) {
+  test(`feedback ${blocked ? "abuse restriction includes release time" : "service failure is manually retryable"} and retains the draft`, async ({
+    page,
+  }) => {
+    const blockedUntil = new Date(Date.now() + 86400000).toISOString();
+    let calls = 0;
+    await page.route(feedbackEndpoint, async (route) => {
+      calls++;
+      if (calls === 1)
+        await route.fulfill({
+          status: blocked ? 429 : 500,
+          contentType: "application/json",
+          body: JSON.stringify(
+            blocked
+              ? {
+                  error: "异常请求",
+                  code: "ABUSE_BLOCKED",
+                  blockedUntil,
+                  retryAfterSeconds: 86400,
+                }
+              : {
+                  error: "反馈暂时不可用，请稍后重试。",
+                  code: "SERVICE_UNAVAILABLE",
+                },
+          ),
+        });
+      else
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(receipt),
+        });
+    });
+    const panel = await openFeedback(page);
+    const original = (await current(page)).reading;
+    const draft = "这个意见应该保留，失败后再手动重试。";
+    await panel
+      .getByRole("textbox", { name: "你的意见", exact: true })
+      .fill(draft);
+    await panel.getByRole("button", { name: "提交反馈", exact: true }).click();
+    await expect(panel.getByRole("status")).toContainText(
+      blocked ? "24小时" : "稍后重试",
+    );
+    if (blocked)
+      await expect(panel.getByRole("status")).toContainText(
+        await page.evaluate(
+          (value) => new Date(value).toLocaleString("zh-CN"),
+          blockedUntil,
+        ),
+      );
+    await expect(
+      panel.getByRole("textbox", { name: "你的意见", exact: true }),
+    ).toHaveValue(draft);
+    await expect(
+      panel.getByRole("button", { name: "提交反馈", exact: true }),
+    ).toBeEnabled();
+    expect(calls).toBe(1);
+    expect((await current(page)).reading).toEqual(original);
+    if (!blocked) {
+      await panel
+        .getByRole("button", { name: "提交反馈", exact: true })
+        .click();
+      await expect(panel.getByRole("status")).toContainText("反馈已送达");
+      expect(calls).toBe(2);
+    }
+  });
+}
