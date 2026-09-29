@@ -111,18 +111,29 @@ describe("single-engine interpretation proxy", () => {
     );
     const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
     expect(JSON.parse(payload.messages[1].content).context).toEqual(context);
-    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.29-4");
+    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.29-5");
     for (const requirement of [
       "仅写两个小段",
       "第一段以「解析：」开头，第二段以「建议：」开头",
-      "120–220 个中文字符，一般不超过 300 字",
+      "100–200 个中文字符",
+      "第一句直接给结论",
+      "鼓励语气只在本次象征支持时使用，不一律鼓励",
       "不要反问、不要结尾提问、不要要求用户补充信息",
       "用同一份冻结结果考虑所有选项",
-      "优先推荐一个选项，沿用其原序号",
-      "其他备选最多用一句话",
+      "明确选一个现有选项，并原样引用所选选项的文字",
+      "解析至少使用一处本次 evidence 实际提供的结构线索及其释义",
+      "逆位不一律坏、正位不一律好",
+      "不能把所有阻力位主题反过来当建议",
+      "不能只凭卦名另套断法",
+      "多个动爻要综合权衡，不能只挑有利爻迎合预选立场",
+      "以个人日为主要主题，生命数字、个人年和个人月只作背景",
+      "为何最终更偏向这一项",
+      "事实真假、诊断、他人隐藏内心或动机不能由符号证明",
+      "符号不能证实真伪",
+      "不能让随机符号推翻现实证据",
+      "示例证据不是本次结果",
       "不能把「不去」变成「去」",
       "不编造其性格、经历、关系、资源或未来事实",
-      "清晰的有条件建议",
       "不得提供医疗、法律、金融投资、政治或投票行动推荐",
     ])
       expect(payload.messages[0].content).toContain(requirement);
@@ -139,7 +150,7 @@ describe("single-engine interpretation proxy", () => {
   it("returns a complete two-paragraph Chinese answer verbatim without cutting its advice", async () => {
     // Synthetic provider response: this verifies transport, not model compliance.
     const conciseAnswer =
-      "解析：魔术师正位提示先用好已有资源，隐者逆位提醒别把暂停变成长期回避，星星正位则适合温和恢复沟通。放回你的选择，先整理想法比急着把话说完更稳妥。\n\n建议：今天先选选项1「不联系」，用十分钟写下最想表达的一件事，暂不发送。若没有必须今天答复的约定，就明天再决定；若有明确期限，可改用发送一句简短说明的备选。";
+      "解析：更建议「发送一句简短说明」。现状位魔术师正位对应这次给出的资源主题，放在联系这件事上，我更偏向用一句清楚的话开始，而不是一直等待完美表达。这是顺着现状先迈一小步的解读，不代表对方一定怎样回应。\n\n建议：今天发一句问候，只表达一件事，发完先放下手机。";
     const fetcher = successfulFetch(conciseAnswer);
     const response = await handleRequest(
       request({
