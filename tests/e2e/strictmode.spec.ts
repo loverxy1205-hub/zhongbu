@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { revealTarot } from "./helpers";
 test("development StrictMode mounts and double submission never repeat draws", async ({
   page,
 }) => {
@@ -37,6 +38,15 @@ test("development StrictMode mounts and double submission never repeat draws", a
   expect(
     await page.evaluate(() => sessionStorage.getItem("zhongbu-active-v1")),
   ).toBe(frozen);
+  expect(await page.locator("html").getAttribute("data-random-calls")).toBe(
+    "31",
+  );
+  await revealTarot(page);
+  expect(
+    await page.evaluate(
+      () => JSON.parse(sessionStorage.getItem("zhongbu-active-v1")!).reading,
+    ),
+  ).toEqual(JSON.parse(frozen!).reading);
   expect(await page.locator("html").getAttribute("data-random-calls")).toBe(
     "31",
   );

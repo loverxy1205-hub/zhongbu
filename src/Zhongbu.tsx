@@ -201,6 +201,29 @@ export default function Zhongbu() {
       key === "favorites",
     );
   }
+  function revealTarot(index: number) {
+    const current = activeRef.current;
+    if (
+      !current ||
+      !Number.isInteger(index) ||
+      index < 0 ||
+      index > 2 ||
+      !current.tarotRevealed ||
+      current.tarotRevealed.includes(index)
+    )
+      return;
+    const next: SavedReading = {
+      ...current,
+      tarotRevealed: [...current.tarotRevealed, index],
+    };
+    activate(next);
+    if (
+      historyRef.current.some(
+        (record) => record.reading.readingId === current.reading.readingId,
+      )
+    )
+      save(next, true);
+  }
   function submit(event: FormEvent) {
     event.preventDefault();
     if (lock.current) return;
@@ -213,6 +236,7 @@ export default function Zhongbu() {
       );
       activate({
         reading,
+        tarotRevealed: [],
         preferences: defaultPreferences(reading),
         savedAt: "",
       });
@@ -291,6 +315,12 @@ export default function Zhongbu() {
             Number(active.preferences.pinned.includes(a.engine)),
         )
     : [];
+  const tarotReady =
+    !active?.reading.results.some(
+      (result) => result.engine === "tarot" && result.status === "ok",
+    ) ||
+    !active.tarotRevealed ||
+    [0, 1, 2].every((index) => active.tarotRevealed!.includes(index));
   return (
     <div className={`app-shell ${motionPaused ? "motion-paused" : ""}`}>
       <a className="skip-link" href="#main">
@@ -513,12 +543,14 @@ export default function Zhongbu() {
                 </button>
                 <button
                   aria-pressed={view === "summary"}
+                  disabled={!tarotReady}
                   onClick={() => setView("summary")}
                 >
                   规则汇总
                 </button>
                 <button
                   aria-pressed={view === "personal"}
+                  disabled={!tarotReady}
                   onClick={() => setView("personal")}
                 >
                   我的偏好汇总
@@ -535,6 +567,7 @@ export default function Zhongbu() {
                 <details className="export-menu">
                   <summary>导出 ↓</summary>
                   <button
+                    disabled={!tarotReady}
                     onClick={() =>
                       download(
                         `${active.reading.readingId}.json`,
@@ -546,6 +579,7 @@ export default function Zhongbu() {
                     JSON
                   </button>
                   <button
+                    disabled={!tarotReady}
                     onClick={() =>
                       download(
                         `${active.reading.readingId}.md`,
@@ -560,6 +594,11 @@ export default function Zhongbu() {
                 </details>
               </div>
             </div>
+            {!tarotReady && (
+              <p className="tarot-unlock-note">
+                翻开三张塔罗牌后，即可查看它的解读、汇总与导出。
+              </p>
+            )}
             {view === "all" ? (
               <>
                 <div className="compare-intro">
@@ -602,17 +641,20 @@ export default function Zhongbu() {
                         prefs={active.preferences}
                         onToggle={toggle}
                         onCopy={() => copy(resultMarkdown(r))}
+                        tarotRevealed={active.tarotRevealed}
+                        onRevealTarot={revealTarot}
                       />
-                      {r.status === "ok" && (
-                        <AiPanel
-                          engine={r.engine}
-                          enhancement={active.enhancements?.[r.engine]}
-                          status={ai.statuses[`${readingKey}:${r.engine}`]}
-                          onGenerate={() => {
-                            void ai.generate(r.engine, true, completeAi);
-                          }}
-                        />
-                      )}
+                      {r.status === "ok" &&
+                        (r.engine !== "tarot" || tarotReady) && (
+                          <AiPanel
+                            engine={r.engine}
+                            enhancement={active.enhancements?.[r.engine]}
+                            status={ai.statuses[`${readingKey}:${r.engine}`]}
+                            onGenerate={() => {
+                              void ai.generate(r.engine, true, completeAi);
+                            }}
+                          />
+                        )}
                     </div>
                   ))}
                 </div>

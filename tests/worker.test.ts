@@ -111,12 +111,15 @@ describe("single-engine interpretation proxy", () => {
     );
     const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
     expect(JSON.parse(payload.messages[1].content).context).toEqual(context);
-    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.29-3");
+    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.29-4");
     for (const requirement of [
-      "先正面回应用户的实际问题",
-      "同一份冻结结果用于比较所有选项",
-      "严格按原顺序逐一使用「选项1」「选项2」",
-      "每项都说明支持它的现实条件、主要代价或局限、一个可实行的小步骤",
+      "仅写两个小段",
+      "第一段以「解析：」开头，第二段以「建议：」开头",
+      "120–220 个中文字符，一般不超过 300 字",
+      "不要反问、不要结尾提问、不要要求用户补充信息",
+      "用同一份冻结结果考虑所有选项",
+      "优先推荐一个选项，沿用其原序号",
+      "其他备选最多用一句话",
       "不能把「不去」变成「去」",
       "不编造其性格、经历、关系、资源或未来事实",
       "清晰的有条件建议",
@@ -131,6 +134,37 @@ describe("single-engine interpretation proxy", () => {
     expect((await handleRequest(request(sample), env(), fetcher)).status).toBe(
       200,
     );
+  });
+
+  it("returns a complete two-paragraph Chinese answer verbatim without cutting its advice", async () => {
+    // Synthetic provider response: this verifies transport, not model compliance.
+    const conciseAnswer =
+      "解析：魔术师正位提示先用好已有资源，隐者逆位提醒别把暂停变成长期回避，星星正位则适合温和恢复沟通。放回你的选择，先整理想法比急着把话说完更稳妥。\n\n建议：今天先选选项1「不联系」，用十分钟写下最想表达的一件事，暂不发送。若没有必须今天答复的约定，就明天再决定；若有明确期限，可改用发送一句简短说明的备选。";
+    const fetcher = successfulFetch(conciseAnswer);
+    const response = await handleRequest(
+      request({
+        ...sample,
+        context: {
+          ...sample.context,
+          mode: "action",
+          question: "今天要不要主动联系？",
+          action: "",
+          options: ["今天不联系", "发送一句简短说明"],
+        },
+      }),
+      env(),
+      fetcher,
+    );
+    expect(response.status).toBe(200);
+    const output = await response.json();
+    expect(aiResponseSchema.safeParse(output).success).toBe(true);
+    expect(output.text).toBe(conciseAnswer);
+    expect(output.promptVersion).toBe(PROMPT_VERSION);
+    const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
+    expect(payload.max_tokens).toBeGreaterThanOrEqual(600);
+    expect(payload.max_tokens).toBeLessThanOrEqual(800);
+    expect(payload.thinking).toEqual({ type: "disabled" });
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it("allows ten nonempty options without trimming their original text", () => {
@@ -201,7 +235,7 @@ describe("single-engine interpretation proxy", () => {
     const payload = JSON.parse(String(init?.body));
     expect(payload).toMatchObject({
       model: "deepseek-flash",
-      max_tokens: 1800,
+      max_tokens: 800,
       thinking: { type: "disabled" },
       stream: false,
     });
@@ -560,32 +594,44 @@ describe("single-engine interpretation proxy", () => {
   it.each([
     {},
     { choices: [] },
-    {
-      choices: [
-        { finish_reason: "length", message: { content: "incomplete" } },
-      ],
-    },
     { choices: [{ finish_reason: "stop", message: { content: " " } }] },
     {
       choices: [
         { finish_reason: "stop", message: { content: "x".repeat(12001) } },
       ],
     },
-  ])(
-    "rejects malformed, empty or truncated provider completions",
-    async (body) => {
-      const fetcher = vi
-        .fn<typeof fetch>()
-        .mockResolvedValue(Response.json(body));
-      const response = await handleRequest(request(), env(), fetcher);
-      expect(response.status).toBe(502);
-      expect(await response.json()).toEqual({
-        error: "模型解读暂时不可用，请稍后再试。",
-        code: "UPSTREAM_RESPONSE_INVALID",
-        upstreamStatus: 200,
-      });
-    },
-  );
+  ])("rejects malformed or empty provider completions", async (body) => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json(body));
+    const response = await handleRequest(request(), env(), fetcher);
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({
+      error: "模型解读暂时不可用，请稍后再试。",
+      code: "UPSTREAM_RESPONSE_INVALID",
+      upstreamStatus: 200,
+    });
+  });
+
+  it("never publishes or silently clips an answer when the provider reports a token cutoff", async () => {
+    const partial = "解析：这组象征提示先整理。\n\n建议：今天先不联系，等你";
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        choices: [{ finish_reason: "length", message: { content: partial } }],
+      }),
+    );
+    const response = await handleRequest(request(), env(), fetcher);
+    expect(response.status).toBe(502);
+    const output = await response.json();
+    expect(output).toEqual({
+      error: "模型解读暂时不可用，请稍后再试。",
+      code: "UPSTREAM_RESPONSE_INVALID",
+      upstreamStatus: 200,
+    });
+    expect(output).not.toHaveProperty("text");
+    expect(JSON.stringify(output)).not.toContain(partial);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
 
   it("times out a provider that never responds and aborts it", async () => {
     vi.useFakeTimers();

@@ -7,6 +7,7 @@ import {
   HISTORY_KEY,
 } from "../src/lib/storage";
 import type { Input, SavedReading } from "../src/types";
+import { savedSchema } from "../src/lib/schema";
 const input: Input = {
   question: "明天如何安排？",
   mode: "action",
@@ -111,5 +112,32 @@ describe("multiple action choices", () => {
     });
     expect(restored.error).toBeNull();
     expect(restored.value[0].reading).toEqual(reading);
+  });
+
+  it("restores partial reveal progress separately from the frozen reading", () => {
+    const reading = createReading(input, instant, rng());
+    const saved: SavedReading = {
+      reading,
+      preferences: defaultPreferences(reading),
+      savedAt: instant,
+      tarotRevealed: [2, 0],
+    };
+    const restored = loadHistory({
+      getItem: () => `[${exportJSON(saved)}]`,
+      setItem: () => {},
+      removeItem: () => {},
+    });
+    expect(restored.error).toBeNull();
+    expect(restored.value[0].tarotRevealed).toEqual([2, 0]);
+    expect(restored.value[0].reading).toEqual(reading);
+    expect(Object.isFrozen(restored.value[0].reading)).toBe(true);
+    expect(exportJSON(saved)).not.toContain(input.birthday);
+    for (const tarotRevealed of [[-1], [3], [0.5], [1, 1], [0, 1, 2, 2]])
+      expect(savedSchema.safeParse({ ...saved, tarotRevealed }).success).toBe(
+        false,
+      );
+    expect(
+      savedSchema.safeParse({ ...saved, tarotRevealed: undefined }).success,
+    ).toBe(true);
   });
 });

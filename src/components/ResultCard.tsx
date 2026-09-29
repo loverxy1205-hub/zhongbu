@@ -53,28 +53,114 @@ export function HexFigure({
     </figure>
   );
 }
-export function RawVisual({ raw }: { raw: Raw }) {
+type TarotRevealProps = {
+  tarotRevealed?: readonly number[];
+  onRevealTarot?: (index: number) => void;
+};
+
+function TarotBack() {
+  return (
+    <svg
+      className="tarot-back-art"
+      viewBox="0 0 96 128"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="0.9"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M10 117V45a38 38 0 0 1 76 0v72ZM16 111V45a32 32 0 0 1 64 0v66Z"
+        opacity=".5"
+      />
+      <path d="m48 24 30 40-30 40-30-40Z" opacity=".4" />
+      <circle cx="48" cy="64" r="23" />
+      <circle cx="48" cy="64" r="28" strokeDasharray="1 4" opacity=".7" />
+      <path
+        d="M53 47a18 18 0 1 0 11 27 20 20 0 0 1-11-27Z"
+        fill="currentColor"
+        fillOpacity=".16"
+      />
+      <path
+        d="m48 54 2.8 7.2L58 64l-7.2 2.8L48 74l-2.8-7.2L38 64l7.2-2.8Z"
+        fill="currentColor"
+        fillOpacity=".4"
+      />
+      <path d="M48 11v11m-5-5h10M48 106v11m-5-5h10M23 36v6m-3-3h6m44-3v6m-3-3h6M23 86v6m-3-3h6m44-3v6m-3-3h6" />
+      <circle cx="48" cy="31" r="1.5" fill="currentColor" />
+      <circle cx="48" cy="97" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function RawVisual({
+  raw,
+  tarotRevealed,
+  onRevealTarot,
+}: { raw: Raw } & TarotRevealProps) {
   if (raw.kind === "tarot")
     return (
       <div className="triptych tarot-spread">
         {raw.cards.map((d, i) => {
           const c = TAROT.find((c) => c.id === d.id)!;
+          const revealed =
+            tarotRevealed === undefined || tarotRevealed.includes(i);
           return (
-            <div key={d.id} className="symbol-slot">
+            <div
+              key={d.id}
+              className="symbol-slot"
+              data-testid={`tarot-slot-${i}`}
+              data-revealed={revealed}
+            >
               <span className="position">
                 0{i + 1} / {d.position}
               </span>
-              <div className={`tarot-tile ${d.reversed ? "reversed" : ""}`}>
-                <TarotOrbit />
-                <div className="arcana-art" aria-hidden="true">
-                  <TarotArt cardId={d.id} />
-                </div>
-                <span className="card-number">{c.english}</span>
-              </div>
-              <strong>{c.name}</strong>
-              <small className="card-orientation">
-                {d.reversed ? "逆位" : "正位"}
-              </small>
+              <button
+                type="button"
+                className={`tarot-reveal ${revealed ? "is-revealed" : "is-covered"}`}
+                data-testid={`tarot-reveal-${i}`}
+                aria-label={
+                  revealed
+                    ? `${c.name}，${d.reversed ? "逆位" : "正位"}，已翻开`
+                    : `翻开第 ${i + 1} 张塔罗牌`
+                }
+                aria-disabled={revealed || !onRevealTarot}
+                tabIndex={revealed ? -1 : 0}
+                onClick={() => {
+                  if (!revealed) onRevealTarot?.(i);
+                }}
+              >
+                <span className="tarot-flipper" aria-hidden="true">
+                  <span className="tarot-tile tarot-card-back">
+                    <TarotOrbit />
+                    <TarotBack />
+                    <span className="tarot-back-seal">众 · 卜</span>
+                  </span>
+                  {revealed && (
+                    <span
+                      className={`tarot-tile tarot-card-front ${d.reversed ? "reversed" : ""}`}
+                    >
+                      <TarotOrbit />
+                      <span className="arcana-art">
+                        <TarotArt cardId={d.id} />
+                      </span>
+                      <span className="card-number">{c.english}</span>
+                    </span>
+                  )}
+                </span>
+              </button>
+              <strong
+                className={revealed ? "tarot-card-name" : "tarot-covered-label"}
+              >
+                {revealed ? c.name : "轻触翻开"}
+              </strong>
+              {revealed ? (
+                <small className="card-orientation">
+                  {d.reversed ? "逆位" : "正位"}
+                </small>
+              ) : (
+                <small className="tarot-covered-caption">留一刻给直觉</small>
+              )}
             </div>
           );
         })}
@@ -153,14 +239,23 @@ export function ResultCard({
   prefs,
   onToggle,
   onCopy,
+  tarotRevealed,
+  onRevealTarot,
 }: {
   result: EngineResult;
   prefs: Preferences;
   onToggle: (key: "pinned" | "liked" | "favorites", id: EngineId) => void;
   onCopy: () => void;
-}) {
+} & TarotRevealProps) {
   const meta = ENGINES[result.engine],
     i = result.interpretation;
+  const tarotRaw = result.raw?.kind === "tarot" ? result.raw : undefined;
+  const revealedCount =
+    tarotRaw?.cards.filter(
+      (_, index) =>
+        tarotRevealed === undefined || tarotRevealed.includes(index),
+    ).length ?? 0;
+  const canRead = !tarotRaw || revealedCount === tarotRaw.cards.length;
   return (
     <article
       className={`result-card engine-${result.engine}`}
@@ -188,24 +283,34 @@ export function ResultCard({
         result.raw &&
         i && (
           <>
-            <RawVisual raw={result.raw} />
-            <div className="theme-row">
-              {i.themes.map((t) => (
-                <span key={t}>{t}</span>
-              ))}
-            </div>
-            <p className="reading-headline">{i.headline}</p>
-            <section className="result-reading" aria-label="本站白话">
-              <h4 className="reading-section-title">本站白话</h4>
-              {i.paragraphs.map((p, n) => (
-                <ReadingParagraph p={p} key={n} />
-              ))}
-            </section>
-            <div className="reflection-box">
-              {i.reflection.map((p, n) => (
-                <ReadingParagraph p={p} key={n} />
-              ))}
-            </div>
+            <RawVisual
+              raw={result.raw}
+              tarotRevealed={tarotRevealed}
+              onRevealTarot={onRevealTarot}
+            />
+            {tarotRaw && (
+              <p className="tarot-reveal-progress" role="status">
+                {canRead
+                  ? "三张牌已展开，读一读它们带来的视角。"
+                  : `已翻开 ${revealedCount} / ${tarotRaw.cards.length} 张 · 翻开全部后呈现解读`}
+              </p>
+            )}
+            {canRead && (
+              <>
+                <div className="theme-row">
+                  {i.themes.map((t) => (
+                    <span key={t}>{t}</span>
+                  ))}
+                </div>
+                <p className="reading-headline">{i.headline}</p>
+                <section className="result-reading" aria-label="本站白话">
+                  <h4 className="reading-section-title">本站白话</h4>
+                  {i.paragraphs.map((p, n) => (
+                    <ReadingParagraph p={p} key={n} />
+                  ))}
+                </section>
+              </>
+            )}
           </>
         )
       )}
@@ -216,19 +321,25 @@ export function ResultCard({
         >
           {prefs.pinned.includes(result.engine) ? "取消置顶" : "↑ 置顶体系"}
         </button>
-        <button
-          aria-pressed={prefs.favorites.includes(result.engine)}
-          onClick={() => onToggle("favorites", result.engine)}
-        >
-          {prefs.favorites.includes(result.engine) ? "★ 已收藏" : "☆ 收藏本条"}
-        </button>
-        <button
-          aria-pressed={prefs.liked.includes(result.engine)}
-          onClick={() => onToggle("liked", result.engine)}
-        >
-          {prefs.liked.includes(result.engine) ? "✓ 已认同" : "♡ 我更认同"}
-        </button>
-        <button onClick={onCopy}>复制本条</button>
+        {canRead && (
+          <>
+            <button
+              aria-pressed={prefs.favorites.includes(result.engine)}
+              onClick={() => onToggle("favorites", result.engine)}
+            >
+              {prefs.favorites.includes(result.engine)
+                ? "★ 已收藏"
+                : "☆ 收藏本条"}
+            </button>
+            <button
+              aria-pressed={prefs.liked.includes(result.engine)}
+              onClick={() => onToggle("liked", result.engine)}
+            >
+              {prefs.liked.includes(result.engine) ? "✓ 已认同" : "♡ 我更认同"}
+            </button>
+            <button onClick={onCopy}>复制本条</button>
+          </>
+        )}
       </footer>
     </article>
   );

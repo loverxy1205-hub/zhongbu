@@ -1,7 +1,8 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, devices } from "@playwright/test";
 import type { Page, Route } from "@playwright/test";
 import type { AiRequest, AiResponse } from "../../shared/ai-contract";
 import type { SavedReading } from "../../src/types";
+import { revealTarot } from "./helpers";
 
 const endpoint = "http://127.0.0.1:5174/test-ai/interpret";
 const question = "我想先不联系对方，怎样理解自己的边界？";
@@ -38,6 +39,7 @@ async function start(
   await page.getByLabel(/预设场景/).selectOption("沟通联系");
   await page.getByLabel("出生日期").fill("1998-06-15");
   await page.getByRole("button", { name: "开启这次探索" }).click();
+  await revealTarot(page);
   await expect(page.getByTestId("ai-tarot")).toBeVisible();
 }
 async function downloadText(page: Page, format: "JSON" | "Markdown") {
@@ -169,6 +171,9 @@ test("clicking advice sends the exact question and ordered options for only that
   const original = (await current(page)).reading;
   const tarot = page.getByTestId("ai-tarot");
   await expect(page.getByLabel("同时发送我的问题与行动")).toHaveCount(0);
+  await expect(
+    tarot.getByText(/点击.*发送|生日字段.*发送|点击才联网/),
+  ).toHaveCount(0);
   await tarot.getByRole("button", { name: "获取针对问题的建议" }).click();
   await expect(tarot.locator(".ai-prose")).toBeVisible();
   expect(requests[0].engine).toBe("tarot");
@@ -315,4 +320,50 @@ test("model content stays plain text and cannot execute markup or navigate", asy
     await page.evaluate(() => Object.hasOwn(window, "__modelExecuted")),
   ).toBe(false);
   expect((await current(page)).reading).toEqual(original);
+});
+
+test.describe("mobile browsers with older AbortSignal support", () => {
+  test.use({
+    viewport: devices["Pixel 7"].viewport,
+    userAgent: devices["Pixel 7"].userAgent,
+    deviceScaleFactor: devices["Pixel 7"].deviceScaleFactor,
+    isMobile: true,
+    hasTouch: true,
+  });
+
+  test("a network failure can be retried manually without AbortSignal.any or timeout", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Reflect.deleteProperty(AbortSignal, "any");
+      Reflect.deleteProperty(AbortSignal, "timeout");
+    });
+    let calls = 0;
+    await page.route(endpoint, async (route) => {
+      calls++;
+      if (calls === 1) await route.abort("failed");
+      else await complete(route);
+    });
+    await start(page);
+    expect(
+      await page.evaluate(() => [
+        typeof AbortSignal.any,
+        typeof AbortSignal.timeout,
+      ]),
+    ).toEqual(["undefined", "undefined"]);
+    const original = (await current(page)).reading;
+    const panel = page.getByTestId("ai-tarot");
+    await panel.getByRole("button", { name: "获取针对问题的建议" }).click();
+    await expect(panel.getByRole("status")).toContainText(/连接|网络/);
+    expect(calls).toBe(1);
+    await expect(
+      panel.getByRole("button", { name: "获取针对问题的建议" }),
+    ).toBeEnabled();
+    expect((await current(page)).enhancements).toBeUndefined();
+    await panel.getByRole("button", { name: "获取针对问题的建议" }).click();
+    await expect(panel.locator(".ai-prose")).toHaveText(answer.text);
+    expect(calls).toBe(2);
+    expect((await current(page)).reading).toEqual(original);
+    expect((await current(page)).enhancements?.tarot?.response).toEqual(answer);
+  });
 });

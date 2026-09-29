@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import type { SavedReading } from "../../src/types";
+import { revealTarot } from "./helpers";
 const current = (page: Page) =>
   page.evaluate(
     () =>
@@ -12,6 +13,7 @@ async function start(page: Page, birthday = true) {
   if (birthday) await page.getByLabel("出生日期").fill("1998-06-15");
   await page.getByRole("button", { name: "开启这次探索" }).click();
   await expect(page.getByTestId("result-tarot")).toBeVisible();
+  await revealTarot(page);
 }
 test("all five engines work, no remote runtime requests or keys", async ({
   page,
@@ -144,6 +146,7 @@ test("offline calculation, source library and offline refresh after caching", as
   await page.getByLabel("出生日期").fill("1998-06-15");
   await page.getByRole("button", { name: "开启这次探索" }).click();
   await expect(page.locator(".result-card")).toHaveCount(5);
+  await revealTarot(page);
   const first = (await current(page)).reading;
   expect(
     first.results.every((r: { status: string }) => r.status === "ok"),
@@ -198,7 +201,11 @@ test("blocked storage reports an error but still calculates and exports", async 
   });
   await start(page);
   await page.getByRole("button", { name: "保存本次", exact: true }).click();
-  await expect(page.getByRole("status")).toBeVisible();
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: /读取失败|存储不可用|保存失败/ }),
+  ).toBeVisible();
   await expect(page.locator(".result-card")).toHaveCount(5);
   await page.getByText("导出 ↓", { exact: true }).click();
   await expect(
@@ -256,7 +263,7 @@ test("method library is complete and keyboard-accessible; layout has no horizont
     ),
   ).toBeTruthy();
 });
-test("raw results and plain reflections remain while technical disclosures are removed", async ({
+test("raw results and basic interpretations remain while reflections and technical disclosures are removed", async ({
   page,
 }, info) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -267,7 +274,10 @@ test("raw results and plain reflections remain while technical disclosures are r
     page.getByTestId("result-tarot").locator(".symbol-slot"),
   ).toHaveCount(3);
   await expect(coin.locator(".result-reading")).toBeVisible();
-  await expect(coin.locator(".reflection-box")).toBeVisible();
+  await expect(page.locator(".result-card .reflection-box")).toHaveCount(0);
+  await expect(page.locator(".result-card").getByText(/场景反思/)).toHaveCount(
+    0,
+  );
   await expect(page.locator(".result-card details")).toHaveCount(0);
   for (const text of ["追溯依据", "计算或抽取过程", "来源与限制"])
     await expect(

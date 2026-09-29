@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildAiRequest, requestAi } from "../src/lib/ai";
+import {
+  AI_REQUEST_TIMEOUT_MS,
+  buildAiRequest,
+  requestAi,
+} from "../src/lib/ai";
 import { createReading } from "../src/engines/reading";
 import { defaultPreferences } from "../src/lib/storage";
 import type { AiResponse } from "../shared/ai-contract";
@@ -157,17 +161,7 @@ describe("single-engine AI request privacy", () => {
       expect(request.context.question).toBe(input.question);
       expect(request.context.action).toBe("不联系");
       expect(request.context).not.toHaveProperty("category");
-      expect(request.evidence.reflection).toEqual(
-        source.results
-          .find((r) => r.engine === engine)!
-          .interpretation!.reflection.map(({ label, text }) => ({
-            label,
-            text,
-          })),
-      );
-      expect(
-        request.evidence.reflection.every((p) => p.text.includes("「不联系」")),
-      ).toBe(true);
+      expect(request.evidence.reflection).toEqual([]);
       expect(JSON.stringify(request)).not.toContain(input.birthday);
       expect(JSON.stringify(request)).not.toContain(instant);
     },
@@ -239,6 +233,7 @@ describe("AI transport", () => {
     vi.stubGlobal("navigator", { onLine: true });
   });
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -312,9 +307,85 @@ describe("AI transport", () => {
     ).rejects.toThrow("暂时没有连接上解读服务");
   });
 
+  it("works without AbortSignal.any or AbortSignal.timeout on older mobile browsers", async () => {
+    const descriptors = Object.getOwnPropertyDescriptors(AbortSignal);
+    Object.defineProperty(AbortSignal, "any", {
+      configurable: true,
+      value: undefined,
+    });
+    Object.defineProperty(AbortSignal, "timeout", {
+      configurable: true,
+      value: undefined,
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(response)));
+    try {
+      await expect(
+        requestAi(request, new AbortController().signal, endpoint),
+      ).resolves.toEqual(response);
+    } finally {
+      Object.defineProperties(AbortSignal, descriptors);
+    }
+  });
+
+  it("does not start a request that was already cancelled", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      requestAi(request, controller.signal, endpoint),
+    ).rejects.toThrow("已取消");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("ends a stalled mobile connection at the deadline without automatic retries", async () => {
+    vi.useFakeTimers();
+    let received: AbortSignal | null | undefined;
+    const fetchMock = vi.fn((_url: string, init: RequestInit) => {
+      received = init.signal;
+      return new Promise<Response>(() => {});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const pending = requestAi(request, new AbortController().signal, endpoint);
+    const rejected = expect(pending).rejects.toThrow("连接等待超时");
+    await vi.advanceTimersByTimeAsync(AI_REQUEST_TIMEOUT_MS);
+    await rejected;
+    expect(received?.aborted).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("keeps the deadline active until a slow response body is read", async () => {
+    vi.useFakeTimers();
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        streamController = controller;
+      },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body)));
+    const pending = requestAi(request, new AbortController().signal, endpoint);
+    const rejected = expect(pending).rejects.toThrow("连接等待超时");
+    await vi.advanceTimersByTimeAsync(AI_REQUEST_TIMEOUT_MS);
+    await rejected;
+    streamController.error(new Error("test body stopped"));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("cleans up its deadline and caller listener after success", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(response)));
+    const controller = new AbortController();
+    const remove = vi.spyOn(controller.signal, "removeEventListener");
+    await requestAi(request, controller.signal, endpoint);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(remove).toHaveBeenCalledWith("abort", expect.any(Function));
+  });
+
   it.each([
     [429, "一分钟后再试"],
     [503, "暂未就绪"],
+    [504, "响应超时"],
     [500, "请稍后重试"],
   ])("reports HTTP %s as a retryable failure", async (status, message) => {
     vi.stubGlobal(

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { revealTarot } from "./helpers";
 test("homepage and results pass automated WCAG A/AA accessibility checks", async ({
   page,
 }) => {
@@ -19,6 +20,7 @@ test("homepage and results pass automated WCAG A/AA accessibility checks", async
   await expect(page.getByTestId("ritual-transition")).toBeVisible();
   await page.getByRole("button", { name: "跳过动画", exact: true }).click();
   await expect(page.getByTestId("result-tarot")).toBeVisible();
+  await revealTarot(page);
   // Audit the settled reading, after its finite entrance fades finish.
   await page.locator(".results-page").evaluate(async (element) => {
     await Promise.all(

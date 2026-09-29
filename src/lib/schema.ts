@@ -168,6 +168,11 @@ export const savedSchema = z.object({
     included: z.array(engine),
   }),
   savedAt: z.string(),
+  tarotRevealed: z
+    .array(z.number().int().min(0).max(2))
+    .max(3)
+    .refine((values) => new Set(values).size === values.length)
+    .optional(),
   enhancements: z
     .partialRecord(
       engine,

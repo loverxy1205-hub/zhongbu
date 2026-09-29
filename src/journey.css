@@ -156,3 +156,9 @@
     scroll-behavior: auto !important;
   }
 }
+.tarot-unlock-note {
+  color: #6f4e82;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  margin: 10px 0 22px;
+}

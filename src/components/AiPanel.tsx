@@ -68,9 +68,7 @@ export function AiPanel({
           {status?.busy ? (
             <AdviceWaiting engine={engine} />
           ) : (
-            <p>
-              结合你问的事与这组结果，给出更具体的思路；有多个选项时，逐一看清条件与取舍。
-            </p>
+            <p>简单解析这组结果，给你一个具体建议。</p>
           )}
           <button
             className="ai-generate"
@@ -79,11 +77,6 @@ export function AiPanel({
           >
             {status?.busy ? "正在整理建议…" : "✧ 获取针对问题的建议"}
           </button>
-          {!status?.busy && (
-            <p className="ai-caption">
-              点击后，会把本次问题、选项和这条结果发送给 DeepSeek。
-            </p>
-          )}
           {!AI_ENDPOINT && (
             <p className="ai-caption">建议服务尚未开通，本地结果仍可查看。</p>
           )}

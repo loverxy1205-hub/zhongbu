@@ -143,6 +143,8 @@ export interface SavedReading {
   reading: Reading;
   preferences: Preferences;
   savedAt: string;
+  /** Presentation only; absent means a legacy reading already revealed. */
+  tarotRevealed?: number[];
   enhancements?: Partial<Record<EngineId, AiEnhancement>>;
 }
 export interface AiEnhancement {
