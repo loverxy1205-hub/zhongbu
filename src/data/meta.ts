@@ -1,18 +1,26 @@
-import type { EngineId } from "../types";
+import type { EngineId, CoreEngineId } from "../types";
 export const VERSIONS = {
-  app: "1.6.1",
-  knowledge: "2026.09.29-2",
-  rules: "1.2.0",
-  templates: "1.2.0",
+  app: "2.0.0",
+  knowledge: "2026.09.30-3",
+  rules: "2.0.0",
+  templates: "2.0.0",
   calendar: "lunar-typescript@1.8.6",
   schema: 1,
 } as const;
-export const ENGINE_IDS: EngineId[] = [
+export const CORE_ENGINE_IDS: CoreEngineId[] = [
   "tarot",
   "iching",
   "meihua",
   "numerology",
   "runes",
+];
+export const ENGINE_IDS: EngineId[] = [
+  ...CORE_ENGINE_IDS,
+  "geomancy",
+  "coffee",
+  "ifa",
+  "jiaobei",
+  "oracle",
 ];
 export const ENGINES: Record<
   EngineId,
@@ -24,6 +32,41 @@ export const ENGINES: Record<
     version: string;
   }
 > = {
+  geomancy: {
+    name: "地占术 · 沙盘起占",
+    short: "地占",
+    icon: "⠿",
+    description: "亲手点沙 · 十五位盾形图",
+    version: "Geomancy 基本盾图 v1",
+  },
+  coffee: {
+    name: "咖啡渣占 · 翻杯观纹",
+    short: "咖啡",
+    icon: "☕",
+    description: "轻转翻杯 · 人工观察与标注",
+    version: "土耳其咖啡观纹体验 v1",
+  },
+  ifa: {
+    name: "Ifá · 占链体验",
+    short: "Ifá",
+    icon: "⌘",
+    description: "八枚占链 · 256种签名与资料",
+    version: "òpèlè 符号体验 v1",
+  },
+  jiaobei: {
+    name: "掷筊 · 问事体验",
+    short: "掷筊",
+    icon: "◒",
+    description: "确认命题 · 双杯上抛落定",
+    version: "双面数字模拟 v1",
+  },
+  oracle: {
+    name: "灼甲观兆 · 历史体验",
+    short: "灼甲",
+    icon: "裂",
+    description: "虚拟裂纹 · 历史案例与记录",
+    version: "历史流程体验 v1",
+  },
   tarot: {
     name: "塔罗",
     short: "塔罗",

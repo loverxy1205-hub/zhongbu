@@ -1,4 +1,11 @@
-import type { EngineResult, Input, PublicInput, Raw, Reading } from "../types";
+import type {
+  EngineResult,
+  Input,
+  PublicInput,
+  LegacyRaw,
+  Reading,
+} from "../types";
+import { isExperienceId, createExperience } from "../experiences";
 import { ENGINES, ENGINE_IDS, VERSIONS } from "../data/meta";
 import { parseDate } from "../lib/dates";
 import { cryptoWord, readingId } from "../lib/random";
@@ -64,7 +71,14 @@ export function createReading(
         status: "pending",
       };
     try {
-      let raw: Raw;
+      if (isExperienceId(engine))
+        return {
+          engine,
+          methodVersion: ENGINES[engine].version,
+          status: "pending",
+          raw: createExperience(engine, rng),
+        };
+      let raw: LegacyRaw;
       switch (engine) {
         case "tarot":
           raw = drawTarot(input.reversals, rng);
@@ -79,11 +93,7 @@ export function createReading(
           raw = calculateMeihua(askedAt, input.timezone);
           break;
         case "numerology":
-          raw = calculateNumberMatrix(
-            input.birthday,
-            askedAt,
-            input.timezone,
-          );
+          raw = calculateNumberMatrix(input.birthday, askedAt, input.timezone);
           break;
       }
       return {

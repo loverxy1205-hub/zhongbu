@@ -4,7 +4,7 @@ import { advanceReveal, isEngineRevealed } from "../src/lib/reveal";
 import { defaultPreferences, loadHistory } from "../src/lib/storage";
 import { exportJSON } from "../src/lib/export";
 import { savedSchema } from "../src/lib/schema";
-import { ENGINE_IDS } from "../src/data/meta";
+import { CORE_ENGINE_IDS as ENGINE_IDS } from "../src/data/meta";
 import type { Input, SavedReading } from "../src/types";
 
 const input: Input = {

@@ -1,0 +1,182 @@
+.ob-experience {
+  padding: 26px;
+  background: radial-gradient(ellipse at 35% 35%, #f2dfb5, #e5cfa7 80%);
+  color: #523a26;
+  border-radius: 18px;
+}
+.ob-kicker {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+.ob-experience h4 {
+  font-family: Georgia, serif;
+  font-size: 1.7rem;
+  text-align: center;
+  margin: 12px;
+}
+.ob-steps {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ob-steps li {
+  font-size: 0.72rem;
+  padding: 6px 8px;
+  border-bottom: 2px solid transparent;
+  color: #725838;
+}
+.ob-steps [aria-current] {
+  color: #492d1c;
+  border-color: #8d4728;
+  font-weight: 700;
+}
+.ob-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: center;
+}
+.ob-shell-wrap {
+  text-align: center;
+  min-width: 0;
+}
+.ob-shell {
+  width: 100%;
+  max-height: 440px;
+  filter: drop-shadow(0 14px 16px #59371725);
+}
+.ob-shell-wrap small,
+.ob-controls small {
+  display: block;
+  font-size: 0.75rem;
+  color: #6a5139;
+}
+.ob-controls {
+  min-width: 0;
+  line-height: 1.75;
+}
+.ob-controls button {
+  background: #664331;
+  color: #fff6df;
+  border: 1px solid #583a26;
+  padding: 11px 17px;
+  border-radius: 8px;
+  min-height: 44px;
+  margin: 6px 3px;
+}
+.ob-controls button:disabled {
+  opacity: 0.5;
+}
+.ob-controls label {
+  display: block;
+  margin: 15px 0;
+}
+.ob-controls textarea,
+.ob-controls select {
+  display: block;
+  width: 100%;
+  padding: 11px;
+  background: #fff6e1;
+  color: #493323;
+  border: 1px solid #997f5d;
+  border-radius: 8px;
+}
+.ob-controls textarea {
+  min-height: 105px;
+  resize: vertical;
+}
+.ob-controls fieldset {
+  padding: 10px;
+  border: 1px solid #ac8d64;
+  border-radius: 12px;
+}
+.ob-sites {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.ob-sites button {
+  font-size: 0.8rem;
+  padding: 8px;
+  background: #f1dfbd;
+  color: #573722;
+}
+.ob-sites button[aria-pressed="true"] {
+  background: #754b30;
+  color: #fff4de;
+}
+.ob-modern-note {
+  padding: 16px;
+  border-left: 3px solid #a06e3d;
+  overflow-wrap: anywhere;
+  background: #fff7e342;
+}
+.ob-sources {
+  font-size: 0.83rem;
+  line-height: 1.75;
+  margin-top: 22px;
+}
+.ob-sources summary {
+  cursor: pointer;
+  padding: 8px;
+}
+.ob-sources a {
+  color: #603c26;
+}
+.ob-controls blockquote {
+  margin: 16px 0;
+  padding: 12px;
+  background: #f9eacb;
+  border-left: 3px solid #a77846;
+  overflow-wrap: anywhere;
+}
+.ob-heating .ob-cracks path {
+  stroke-dasharray: 1;
+  animation: ob-crack-grow 2s both;
+}
+.ob-ember {
+  animation: ob-heat-glow 1s ease-in-out infinite alternate;
+}
+.ob-controls [role="status"] {
+  font-size: 0.8rem;
+  color: #735638;
+}
+@keyframes ob-crack-grow {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ob-heat-glow {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 0.9;
+  }
+}
+@media (max-width: 650px) {
+  .ob-experience {
+    padding: 15px;
+  }
+  .ob-layout {
+    grid-template-columns: 1fr;
+  }
+  .ob-shell {
+    max-height: 330px;
+  }
+  .ob-experience h4 {
+    font-size: 1.4rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ob-heating .ob-cracks path,
+  .ob-ember {
+    animation: none;
+  }
+}

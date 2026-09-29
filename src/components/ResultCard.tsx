@@ -5,6 +5,7 @@ import type {
   Raw,
   EngineId,
   SavedReading,
+  ExperienceState,
 } from "../types";
 import { ENGINES } from "../data/meta";
 import { TAROT } from "../data/tarot";
@@ -23,6 +24,8 @@ import { TarotDeck } from "./TarotDeck";
 import { CoinRitual } from "./CoinRitual";
 import { RuneBag } from "./RuneBag";
 import { MatrixArt } from "./MatrixArt";
+import { isExperienceRaw } from "../experiences";
+import { ExperiencePanel } from "../experiences/ExperiencePanel";
 export function HexFigure({
   code,
   moving = [],
@@ -113,6 +116,7 @@ export function RawVisual({
   onRevealRune,
   motionPaused,
 }: { raw: Raw } & TarotRevealProps & RuneRevealProps) {
+  if (isExperienceRaw(raw)) return null;
   if (raw.kind === "tarot")
     return (
       <div className="triptych tarot-spread">
@@ -277,6 +281,7 @@ export function ResultCard({
   onPickSlot,
   onCoinRound,
   onDrawRune,
+  onExperienceChange,
 }: {
   result: EngineResult;
   prefs: Preferences;
@@ -288,6 +293,7 @@ export function ResultCard({
   onPickSlot?: (slot: number) => void;
   onCoinRound?: (index: number) => void;
   onDrawRune?: (index: number) => void;
+  onExperienceChange?: (next: ExperienceState) => void;
 } & TarotRevealProps &
   RuneRevealProps) {
   const meta = ENGINES[result.engine],
@@ -334,7 +340,34 @@ export function ResultCard({
           <span className="pinned-badge">置顶</span>
         )}
       </header>
-      {result.status === "pending" ? (
+      {result.raw && isExperienceRaw(result.raw) && journey ? (
+        <>
+          <ExperiencePanel
+            state={result.raw}
+            interpretation={i}
+            input={journey.reading.input}
+            onChange={(next) => onExperienceChange?.(next)}
+            motionPaused={motionPaused}
+          />
+          {canRead && i && result.engine !== "geomancy" && (
+            <section
+              className="result-reading new-experience-reading"
+              aria-label="本地解读与观察"
+            >
+              <p className="reading-headline">{i.headline}</p>
+              {i.traditional.map((p, n) => (
+                <ReadingParagraph p={p} key={`traditional-${n}`} />
+              ))}
+              {i.paragraphs.map((p, n) => (
+                <ReadingParagraph p={p} key={n} />
+              ))}
+              {i.reflection.map((p, n) => (
+                <ReadingParagraph p={p} key={`reflection-${n}`} />
+              ))}
+            </section>
+          )}
+        </>
+      ) : result.status === "pending" ? (
         <TarotDeck
           deck={journey?.tarotDeck || []}
           selectedSlots={journey?.tarotPicked || []}

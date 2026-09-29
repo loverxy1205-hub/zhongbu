@@ -1,9 +1,69 @@
-import type { Input, SavedReading } from "../types";
+import type { Input, SavedReading, ExperienceState } from "../types";
+import {
+  isExperienceRaw,
+  experienceSchema,
+  canTransitionExperience,
+  interpretExperience,
+} from "../experiences";
 import { TAROT } from "../data/tarot";
 import { createReading, deepFreeze } from "../engines/reading";
 import { interpret } from "../rules/interpret";
 import { cryptoWord, sample, uniformInt, type RandomSource } from "./random";
 import { defaultPreferences } from "./storage";
+import { VERSIONS } from "../data/meta";
+
+/** User-authored progress may complete one engine; frozen input and peers stay intact. */
+export function updateExperience(
+  saved: SavedReading,
+  candidate: ExperienceState,
+): SavedReading {
+  const parsed = experienceSchema.safeParse(candidate);
+  if (!parsed.success) return saved;
+  const next = parsed.data;
+  const previous = saved.reading.results.find((r) => r.engine === next.kind);
+  if (
+    !previous?.raw ||
+    !isExperienceRaw(previous.raw) ||
+    !canTransitionExperience(previous.raw, next)
+  )
+    return saved;
+  let interpretation = interpretExperience(next, saved.reading.input);
+  let observationInterpretations = previous.observationInterpretations;
+  if (next.kind === "coffee" && interpretation) {
+    const cached = observationInterpretations?.find(
+      (entry) => entry.id === next.activeVersion,
+    );
+    if (cached) interpretation = cached.interpretation;
+    else
+      observationInterpretations = [
+        ...(observationInterpretations || []),
+        { id: next.activeVersion, interpretation, versions: { ...VERSIONS } },
+      ];
+  } else if (
+    previous.status === "ok" &&
+    interpretation &&
+    previous.interpretation
+  ) {
+    interpretation = previous.interpretation;
+  }
+  const { interpretation: _previousInterpretation, ...base } = previous;
+  const complete = {
+    ...base,
+    raw: next,
+    status: interpretation ? ("ok" as const) : ("pending" as const),
+    ...(interpretation ? { interpretation } : {}),
+    ...(observationInterpretations ? { observationInterpretations } : {}),
+  };
+  return {
+    ...saved,
+    reading: deepFreeze({
+      ...saved.reading,
+      results: saved.reading.results.map((r) =>
+        r.engine === next.kind ? complete : r,
+      ),
+    }),
+  };
+}
 
 /** A complete shuffled deck is committed once, before any slot is chosen. */
 export function createJourney(

@@ -1,4 +1,5 @@
 import type { EngineId, SavedReading } from "../types";
+import { isExperienceId } from "../experiences";
 
 /** Missing fields belong to older, already-visible results. */
 export function isEngineRevealed(
@@ -8,6 +9,7 @@ export function isEngineRevealed(
   const result = saved.reading.results.find((value) => value.engine === engine);
   if (result?.status === "pending") return false;
   if (!result || result.status !== "ok") return true;
+  if (isExperienceId(engine)) return true;
   if (engine === "iching" && saved.coinRounds !== undefined)
     return saved.coinRounds === 6;
   if (
@@ -35,6 +37,7 @@ export function advanceReveal(
   engine: EngineId,
   index?: number,
 ): SavedReading {
+  if (isExperienceId(engine)) return saved;
   if (isEngineRevealed(saved, engine)) return saved;
   if (engine === "tarot" && saved.tarotDeck) return saved;
   if (engine === "iching" && saved.coinRounds !== undefined) return saved;

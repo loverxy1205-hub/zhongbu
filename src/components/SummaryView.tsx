@@ -21,6 +21,17 @@ export function SummaryView({
       <div className="section-kicker">
         {personal ? "由你选择参考范围" : "所有已选体系的共同参照"}
       </div>
+      {!!s.excluded.length && (
+        <p className="scope-note">
+          {s.excluded.join("、")}{" "}
+          保留在各家视图，属于资料／历史／演示记录，不进入主题归纳或方向汇总。
+        </p>
+      )}
+      {s.experiential && (
+        <p className="muted">
+          新体验不为行动选项投票。地占的十五图位、咖啡的多个意象、掷筊的三次确认各只构成一个结果；掷筊的应允只对应它单独确认的命题。
+        </p>
+      )}
       <h2>{personal ? "我的偏好汇总" : "规则汇总"}</h2>
       <p className="muted">
         只读取已经生成并冻结的结果。认同只是偏好，不代表更准确。

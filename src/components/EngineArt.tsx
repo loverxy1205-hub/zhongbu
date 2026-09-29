@@ -105,6 +105,59 @@ export function EngineAccent({ engine }: { engine: EngineId }) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
+      {engine === "geomancy" && (
+        <g>
+          <path d="M12 12h72v38L48 85 12 50Z" opacity=".5" />
+          {[0, 1, 2, 3].map((row) => (
+            <g key={row}>
+              {(row % 2 ? [39, 57] : [48]).map((x) => (
+                <circle
+                  key={x}
+                  cx={x}
+                  cy={26 + row * 13}
+                  r="3"
+                  fill="currentColor"
+                />
+              ))}
+            </g>
+          ))}
+        </g>
+      )}
+      {engine === "coffee" && (
+        <g>
+          <ellipse cx="43" cy="27" rx="26" ry="9" />
+          <path d="M17 27v28c0 25 52 25 52 0V27M69 34c27-6 24 30 0 26M10 80h70" />
+          <path d="M28 45c10-12 15 21 25 4M31 60l10-5" opacity=".6" />
+        </g>
+      )}
+      {engine === "ifa" && (
+        <g>
+          <path d="M24 81V33q0-31 24-23 24-8 24 23v48" />
+          {[29, 45, 61, 77].map((y) => (
+            <g key={y}>
+              <ellipse cx="24" cy={y} rx="8" ry="6" />
+              <ellipse cx="72" cy={y} rx="8" ry="6" />
+            </g>
+          ))}
+        </g>
+      )}
+      {engine === "jiaobei" && (
+        <g>
+          <path
+            d="M40 13C3 24 3 68 40 83 24 57 25 32 40 13ZM60 13C95 24 95 68 60 83 77 57 76 32 60 13Z"
+            fill="currentColor"
+            fillOpacity=".15"
+          />
+          <path d="M22 33q-12 24 7 36M80 31q13 25-9 42" />
+        </g>
+      )}
+      {engine === "oracle" && (
+        <g>
+          <path d="m42 8 17 4 12 12 9 26-6 20-20 17-25-7-13-25 5-26Z" />
+          <path d="m43 23 7 18-7 13 13 10 4 16M50 41l17-8M43 54l-17 9" />
+          <circle cx="50" cy="41" r="3" />
+        </g>
+      )}
       {engine === "tarot" && (
         <>
           <circle cx="48" cy="48" r="36" strokeDasharray="1 5" />

@@ -1,14 +1,16 @@
 import type { EngineResult, Reading, SavedReading } from "../types";
 import { ENGINES, DISCLAIMER } from "../data/meta";
+import { isExperienceId } from "../experiences";
 export function resultMarkdown(r: EngineResult) {
-  if(r.status === "pending") return `## ${ENGINES[r.engine].name}\n等待亲手选完三张牌，尚未形成解读。`;
+  if (r.status === "pending")
+    return `## ${ENGINES[r.engine].name}\n等待完成本体系的互动，尚未形成解读。`;
   if (!r.interpretation)
     return `## ${ENGINES[r.engine].name}\n不可用：${r.error}`;
   const i = r.interpretation;
   const originals = i.traditional
     .map(
       (p) =>
-        `### 传统原文 · ${p.label}\n${p.text}\n${p.knowledgeId} / ${p.ruleId} / ${p.templateId}`,
+        `### ${isExperienceId(r.engine) ? "传统资料" : "传统原文"} · ${p.label}\n${p.text}\n${p.knowledgeId} / ${p.ruleId} / ${p.templateId}`,
     )
     .join("\n\n");
   return [
@@ -23,6 +25,10 @@ export function resultMarkdown(r: EngineResult) {
     `倾向：${i.inclination}\n${i.inclinationReason}`,
     `### 原始计算\n\u0060\u0060\u0060json\n${JSON.stringify(r.raw, null, 2)}\n\u0060\u0060\u0060`,
     `### 来源与限制\n${[...i.sources, ...i.limits].join("\n\n")}`,
+    ...(r.observationInterpretations?.map(
+      (entry) =>
+        `### 观察版本 ${entry.id} · 冻结解释\n${entry.interpretation.headline}\n${[...entry.interpretation.paragraphs, ...entry.interpretation.reflection].map((p) => `${p.label}：${p.text}`).join("\n\n")}\n版本：${JSON.stringify(entry.versions)}`,
+    ) || []),
   ].join("\n\n");
 }
 export function readingMarkdown(

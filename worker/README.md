@@ -1,10 +1,10 @@
-# 众卜模型解读代理
+# 众卜2.0.0模型代理与私有反馈
 
-静态前端保留本地基础解读；用户明确选择某一体系并触发后，才调用这个 Worker。它只转发给固定的 DeepSeek Chat Completions 地址，不接受客户端模型名、上游 URL、系统提示或 token 配置。密钥仅使用 Cloudflare 的 `DEEPSEEK_API_KEY` secret。
+十个篇章的基础流程都在静态前端本地完成。只有原有塔罗、周易、梅花、数字和卢恩在用户主动触发后调用模型；新增地占、咖啡、Ifá、掷筊与灼甲没有模型入口，AI请求契约拒绝这五个ID。Worker只转发给固定的 DeepSeek Chat Completions 地址，不接受客户端模型名、上游 URL、系统提示或 token 配置。密钥仅使用 Cloudflare 的 `DEEPSEEK_API_KEY` secret。私有反馈独立接受全部十个篇章，不调用模型。
 
 ## 部署
 
-在仓库根目录使用已安装的 Wrangler（需要 4.36.0 或更新版）：
+在仓库根目录使用锁文件安装的Wrangler。下面是**新建环境**的初始化步骤；已有生产数据库不要重新创建，先执行后文升级步骤：
 
 ```sh
 npx wrangler login
@@ -16,6 +16,26 @@ npx wrangler secret put DEEPSEEK_API_KEY --config worker/wrangler.jsonc
 npx wrangler secret put ABUSE_HMAC_KEY --config worker/wrangler.jsonc
 npx wrangler deploy --config worker/wrangler.jsonc
 ```
+
+### 已有环境升级2.0
+
+`0002_feedback_experiences.sql`扩充反馈的engine CHECK约束为十个ID，通过创建新表、完整复制旧字段、替换旧表和重建时间索引实现。迁移先于新Worker部署，不能直接跳过数据库升级。
+
+1. 运行`node worker/scripts/feedback.mjs export`，确认生成的私有JSON可以读取；文件在Git忽略的`.wrangler/private-feedback/`，不要打印反馈正文、提交Git或放进静态产物。
+2. 用下列只读查询取得迁移前行数，与导出JSON中实际反馈记录数核对一致。保留原字段数据，用于迁移后逐条核对；正在接收新反馈时需辨认新写入，不能把新增行误判为数据损坏。
+3. 应用迁移，再查询行数并检查原回执及全部字段保留。检查任一失败先停止部署并调查，不清空反馈表重建。
+4. 完成核对后dry-run、部署Worker，再发布Pages前端。新旧五体系模型参数及Secret不需因反馈迁移而更改。
+
+```sh
+node worker/scripts/feedback.mjs export
+npx wrangler d1 execute FEEDBACK_DB --remote --config worker/wrangler.jsonc --command "SELECT count(*) AS total FROM feedback"
+npx wrangler d1 migrations apply FEEDBACK_DB --remote --config worker/wrangler.jsonc
+npx wrangler d1 execute FEEDBACK_DB --remote --config worker/wrangler.jsonc --command "SELECT count(*) AS total FROM feedback"
+npx wrangler deploy --dry-run --config worker/wrangler.jsonc
+npm run worker:deploy
+```
+
+实际备份、迁移、部署及线上验证的执行记录统一见[验证记录](../docs/VALIDATION.md)，本节是操作顺序，不以命令存在代替执行结果。
 
 `secret put` 在终端的隐藏输入提示中录入密钥；也可以在 Cloudflare 控制台的 Worker → Settings → Variables and Secrets 中添加同名 Secret。`ABUSE_HMAC_KEY` 使用独立生成、至少 32 字节的密码学随机秘密，不使用生日、问题或 DeepSeek 密钥；保持稳定，轮换它会改变限流身份。不要把真实密钥写进命令参数、仓库、`.env`、前端构建变量或聊天中。Worker 名称为 `zhongbu-ai`，配置不含账号 ID 或凭据。由部署命令输出的公开 Worker URL 加上 `/interpret`，作为前端公开的代理地址。GitHub Pages 的部署与此 Worker 独立。初次加入 D1／Pages 时，旧 OAuth 授权若缺少 `d1:write`／`pages:write`，需要重新登录授权；权限缺失时不要把未部署功能说成已上线。
 
@@ -37,13 +57,15 @@ npx wrangler deploy --config worker/wrangler.jsonc
 
 `ABUSE_GUARD` 是 SQLite Durable Object，按 Cloudflare 可信 `CF-Connecting-IP` 的 HMAC 匿名键全局路由；不接受 X-Forwarded-For、不依赖浏览器可清除的计数。事务内维护滚动 `(当前时刻−60秒, 当前时刻]` 窗口。有效来源访问已知 API 的所有 POST 尝试先计数，再检查格式、业务字段与较低成本配额。因此无效正文、被配额拒绝的脚本请求同样会计数；第 61 次起封禁 24 小时，期间重复请求不会延长封禁。返回 `ABUSE_BLOCKED`、ISO `blockedUntil`、`retryAfterSeconds` 和 `Retry-After`；解封按精确时刻，不是午夜清零。限流状态到期后由 alarm 删除，缺失绑定、HMAC 配置或存储异常时拒绝在线请求。
 
-另在同一 Durable Object 内保持模型每 IP 滚动 6 次／分钟，以及反馈每 IP 3 次／分钟、10 次／24 小时；这些限额返回 `RATE_LIMITED`，不会仅因第 7 次模型调用就封一天。原有 Cloudflare 节点级每 IP 6 次、共享 40 次／分钟作为额外成本保护保留，后者仍是最终一致，**不是全局账单硬上限**。未登录服务用网络 IP 近似用户：同一校园／公司／家庭出口会共享额度，换 IP 或分布式脚本仍可能绕过个人约束，不能声称已识别独立自然人。封禁仅影响模型与反馈，本地五体系仍可用。
+另在同一 Durable Object 内保持模型每 IP 滚动 6 次／分钟，以及反馈每 IP 3 次／分钟、10 次／24 小时；这些限额返回 `RATE_LIMITED`，不会仅因第 7 次模型调用就封一天。原有 Cloudflare 节点级每 IP 6 次、共享 40 次／分钟作为额外成本保护保留，后者仍是最终一致，**不是全局账单硬上限**。未登录服务用网络 IP 近似用户：同一校园／公司／家庭出口会共享额度，换 IP 或分布式脚本仍可能绕过个人约束，不能声称已识别独立自然人。封禁仅影响模型与反馈，十个篇章的本地流程仍可用。
 
 CORS 是浏览器来源限制，不是身份认证；浏览器外可伪造 Origin。Cloudflare 免费资源有平台额度，DeepSeek API 独立计费；仍应使用服务商余额／预算控制管理费用。
 
 ## 私有反馈与管理
 
 `POST /feedback` 契约见 `shared/feedback-contract.ts`，正文最大 16 KiB。必须显式填写 kind 和 5–2000 字 message，用户主动勾选后才附 question，engine／appVersion 可选；不接受生日、完整记录、IP、偏好或额外字段。D1 只保存这些字段及服务端 UUID 回执、接收时刻，不自动收集用户的问题。自由文本中的用户自填私人信息无法靠结构校验识别，界面需提示不要提交敏感信息。成功返回 201 `{id,receivedAt}`，数据库失败返回固定错误，不假报已保存；不需要 DeepSeek 密钥，不调用模型。没有公开读取或管理接口，页面不展示其他用户反馈。
+
+2.0的反馈engine白名单为`tarot / iching / meihua / numerology / runes / geomancy / coffee / ifa / jiaobei / oracle`；AI白名单仍只有前五个。新增篇章的随机参数、咖啡观察缓存、Ifá签名和灼甲事后记录继续只存本机，反馈不会自动附带这些内容。
 
 反馈在活动数据库中保留最多约 90 天：每天 UTC 03:17 的 scheduled handler 删除早于 90 天的行；平台备份／恢复保留规则由 Cloudflare 控制。所有 SQL 参数化。管理员通过已经授权的本机 Wrangler 查看、导出或删除：
 

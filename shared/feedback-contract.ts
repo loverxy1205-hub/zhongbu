@@ -13,7 +13,18 @@ export const feedbackRequestSchema = z
       .refine((text) => Array.from(text).length >= 5),
     question: z.string().trim().max(2000).optional(),
     engine: z
-      .enum(["tarot", "iching", "meihua", "numerology", "runes"])
+      .enum([
+        "tarot",
+        "iching",
+        "meihua",
+        "numerology",
+        "runes",
+        "geomancy",
+        "coffee",
+        "ifa",
+        "jiaobei",
+        "oracle",
+      ])
       .optional(),
     appVersion: z.string().max(40).optional(),
   })

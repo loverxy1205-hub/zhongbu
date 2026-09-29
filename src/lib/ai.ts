@@ -5,6 +5,7 @@ import { TAROT } from "../data/tarot";
 import { RUNES } from "../data/runes";
 import { HEXAGRAMS } from "../data/hexagrams";
 import { serviceError } from "./service";
+import { isCoreEngine } from "../experiences";
 
 export const AI_ENDPOINT =
   import.meta.env.VITE_INTERPRETATION_API_URL?.trim() || "";
@@ -32,6 +33,8 @@ function rawSummary(raw: Raw): string {
       return `生命数字${raw.life}；个人年${raw.year}；个人月${raw.month}；个人日${raw.day}。只保留派生数字。`;
     case "numerology-matrix":
       return "生日数字九宫格（现代象征约定）。仅提供已经冻结的精选主题与释义，不发送生日、原始数字串、各格次数或缺位全集。";
+    default:
+      throw Error("本体验使用本地资料与个人观察，不发送给模型补写判词。");
   }
 }
 export function buildAiRequest(
@@ -39,6 +42,8 @@ export function buildAiRequest(
   engine: EngineId,
   includeContext: boolean = true,
 ): AiRequest {
+  if (!isCoreEngine(engine))
+    throw Error("本体验使用本地资料与个人观察，不发送给模型补写判词。");
   const result = reading.results.find((r) => r.engine === engine);
   if (!result?.raw || !result.interpretation || result.status !== "ok")
     throw Error("这套体系尚无可延伸的结果。");
@@ -126,7 +131,9 @@ export async function requestAi(
     }
     if (!response.ok) {
       if (response.status === 429)
-        throw Error(await serviceError(response,"先让灵感歇一会儿，请一分钟后再试。"));
+        throw Error(
+          await serviceError(response, "先让灵感歇一会儿，请一分钟后再试。"),
+        );
       if (response.status === 503)
         throw Error("灵感解读暂未就绪，本地结果仍可使用。");
       if (response.status === 504)

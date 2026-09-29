@@ -13,6 +13,7 @@ import { MATRIX_NUMBERS, NUMBERS } from "../data/numbers";
 import { hexByCode } from "../data/hexagrams";
 import { SOURCES } from "../data/meta";
 import { renderEvidence, renderPosition, renderReflection } from "./renderText";
+import { isExperienceRaw, interpretExperience } from "../experiences";
 // Exact structured-scene + action opt-in. No keyword extraction or hidden polarity reversal.
 export const ADAPTED_ACTIONS: Partial<Record<PublicInput["scene"], string[]>> =
   {
@@ -70,6 +71,11 @@ function requireEntry<T extends Knowledge>(items: T[], id: string): T {
   return e;
 }
 export function interpret(raw: Raw, input: PublicInput): Interpretation {
+  if (isExperienceRaw(raw)) {
+    const value = interpretExperience(raw, input);
+    if (!value) throw Error("请先完成本体系的交互，再查看解读。");
+    return value;
+  }
   const paragraphs: Paragraph[] = [],
     traditional: Paragraph[] = [],
     themes: Theme[] = [],

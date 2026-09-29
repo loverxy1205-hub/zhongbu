@@ -1,0 +1,227 @@
+.jb-experience {
+  padding: 24px;
+  color: #603327;
+  background: radial-gradient(ellipse at 50% 40%, #fff1d9, #f7e7d7);
+  border-radius: 18px;
+}
+.jb-kicker {
+  text-align: center;
+  color: #9c5b31;
+  letter-spacing: 0.22em;
+  font-size: 0.75rem;
+}
+.jb-experience h4 {
+  text-align: center;
+  font-family: Georgia, serif;
+  font-size: 1.7rem;
+  margin: 10px;
+}
+.jb-config label {
+  display: block;
+  margin: 12px 0;
+}
+.jb-config input:not([type="radio"]) {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #b5896a;
+  background: #fffaf4;
+  border-radius: 8px;
+}
+.jb-config fieldset {
+  border: 1px solid #d3b7a2;
+  margin: 18px 0;
+  border-radius: 12px;
+}
+.jb-config input[type="radio"] {
+  margin-right: 8px;
+}
+.jb-experience button {
+  border: 1px solid #b08066;
+  background: #fff9ef;
+  color: #663b2b;
+  border-radius: 9px;
+  padding: 10px 16px;
+  margin: 5px;
+  min-height: 44px;
+}
+.jb-experience button:disabled {
+  opacity: 0.55;
+}
+.jb-experience .primary-button {
+  background: #97452f;
+  color: #fff9ef;
+}
+.jb-options {
+  display: grid;
+  gap: 4px;
+}
+.jb-proposition {
+  padding: 12px;
+  border-left: 3px solid #aa5940;
+  overflow-wrap: anywhere;
+}
+.jb-stage {
+  position: relative;
+  min-height: 290px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  perspective: 900px;
+  overflow: hidden;
+}
+.jb-ground {
+  position: absolute;
+  bottom: 15px;
+  width: 85%;
+  height: 35px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #a2684938, transparent 65%);
+}
+.jb-block {
+  position: relative;
+  width: 140px;
+  transform: rotate(-16deg);
+  transform-origin: center 65%;
+}
+.jb-block-1 {
+  transform: rotate(23deg);
+}
+.jb-block svg {
+  width: 100%;
+  height: 235px;
+  filter: drop-shadow(5px 12px 7px #76351935);
+}
+.jb-block span {
+  display: block;
+  text-align: center;
+  font-size: 0.8rem;
+  transform: rotate(16deg);
+}
+.jb-block-1 span {
+  transform: rotate(-23deg);
+}
+.jb-closed {
+  display: flex;
+}
+.jb-closed .jb-block {
+  width: 120px;
+  transform: none;
+  transform-origin: center center;
+}
+.jb-closed .jb-block-1 {
+  margin-left: -30px;
+  transform: rotate(180deg);
+}
+.jb-closed span {
+  visibility: hidden;
+}
+.jb-flying {
+  animation: jb-toss 2s both;
+}
+.jb-block-1.jb-flying {
+  animation-name: jb-toss-other;
+}
+.jb-flying span {
+  visibility: hidden;
+}
+.jb-records {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+  gap: 10px;
+}
+.jb-records li {
+  border: 1px solid #d9b99c;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff8ec;
+}
+.jb-method {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  margin-top: 24px;
+}
+.jb-method a {
+  color: #7b382b;
+}
+.jb-method summary {
+  cursor: pointer;
+  padding: 8px;
+}
+.jb-experience [role="status"] {
+  text-align: center;
+  min-height: 26px;
+}
+@keyframes jb-toss {
+  0% {
+    transform: translate(30px, 5px) rotate(0);
+  }
+  25% {
+    transform: translate(10px, -110px) rotateY(420deg) rotateZ(-110deg);
+  }
+  55% {
+    transform: translate(-8px, -20px) rotateY(720deg) rotateZ(-26deg);
+  }
+  65% {
+    transform: translate(0, 8px) rotate(-16deg);
+  }
+  75% {
+    transform: translate(-4px, -20px) rotate(-22deg);
+  }
+  85% {
+    transform: translate(2px, 0) rotate(-13deg);
+  }
+  94% {
+    transform: translate(-1px, -4px) rotate(-18deg);
+  }
+  100% {
+    transform: rotate(-16deg);
+  }
+}
+@keyframes jb-toss-other {
+  0% {
+    transform: translate(-30px, 5px) rotate(0);
+  }
+  25% {
+    transform: translate(-10px, -125px) rotateY(-380deg) rotateZ(120deg);
+  }
+  55% {
+    transform: translate(8px, -10px) rotateY(-720deg) rotateZ(32deg);
+  }
+  65% {
+    transform: translate(0, 8px) rotate(23deg);
+  }
+  75% {
+    transform: translate(5px, -24px) rotate(29deg);
+  }
+  85% {
+    transform: translate(-2px, 0) rotate(19deg);
+  }
+  94% {
+    transform: translate(1px, -4px) rotate(24deg);
+  }
+  100% {
+    transform: rotate(23deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jb-flying {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .jb-experience {
+    padding: 15px;
+  }
+  .jb-block {
+    width: 115px;
+  }
+  .jb-stage {
+    min-height: 260px;
+  }
+  .jb-experience h4 {
+    font-size: 1.4rem;
+  }
+}

@@ -8,6 +8,7 @@ import { HEXAGRAMS } from "../data/hexagrams";
 import { MATRIX_NUMBERS } from "../data/numbers";
 import { VERSIONS } from "../data/meta";
 import { HexFigure } from "./ResultCard";
+import { ExperienceLibrary } from "../experiences/ExperienceLibrary";
 export function KnowledgeLibrary() {
   const [tab, setTab] = useState("tarot"),
     [query, setQuery] = useState("");
@@ -34,6 +35,7 @@ export function KnowledgeLibrary() {
         原典、本站白话和场景反思分别呈现。全部知识随网站打包，阅读与计算不需要联网查询。
       </p>
       <div className="library-methods">
+        <ExperienceLibrary />
         <details>
           <summary>生日数字九宫格 · 现代算法约定</summary>
           <p>

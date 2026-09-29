@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useId, useRef } from "react";
 import type { EngineId } from "../types";
-import { Blossom, Coin } from "./EngineArt";
+import { Blossom, Coin, EngineAccent } from "./EngineArt";
+import { isExperienceId } from "../experiences";
 import "../ritual.css";
 
 const RITUALS: Record<EngineId, { name: string; action: string }> = {
+  geomancy: { name: "地占术", action: "沙迹成行，盾图待绘" },
+  coffee: { name: "咖啡观纹", action: "轻转杯盏，留下想象" },
+  ifa: { name: "Ifá 占链", action: "链片相连，认识符号" },
+  jiaobei: { name: "掷筊", action: "月牙合拢，一事一问" },
+  oracle: { name: "灼甲历史体验", action: "记下此问，静观裂纹" },
   tarot: { name: "塔罗", action: "星轨流转，牌面将启" },
   iching: { name: "周易", action: "铜钱轻转，阴阳相生" },
   meihua: { name: "梅花易数", action: "一枝花落，观照此刻" },
@@ -13,6 +19,17 @@ const RITUALS: Record<EngineId, { name: string; action: string }> = {
 
 /** Pure decoration: no draws, result values, network calls, or random sources. */
 export function EngineMeditation({ engine }: { engine: EngineId }) {
+  if (isExperienceId(engine))
+    return (
+      <div
+        className={`engine-meditation meditation-${engine}`}
+        data-testid="engine-meditation"
+        data-engine={engine}
+        aria-hidden="true"
+      >
+        <EngineAccent engine={engine} />
+      </div>
+    );
   return (
     <div
       className={`engine-meditation meditation-${engine}`}

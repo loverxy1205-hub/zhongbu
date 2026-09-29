@@ -8,13 +8,15 @@ import type {
   Scene,
   AiEnhancement,
 } from "./types";
-import { ENGINES, ENGINE_IDS } from "./data/meta";
+import { ENGINES, ENGINE_IDS, CORE_ENGINE_IDS } from "./data/meta";
+import { isCoreEngine } from "./experiences";
 import { deepFreeze } from "./engines/reading";
 import {
   createJourney,
   pickTarot,
   advanceCoinRound,
   drawRuneStone,
+  updateExperience,
 } from "./lib/journey";
 import { BirthdayMemory } from "./components/BirthdayMemory";
 import { readBirthdayMemory } from "./lib/birthdayMemory";
@@ -49,6 +51,7 @@ import "./experience.css";
 import "./ritual.css";
 import "./journey.css";
 import "./chapters.css";
+import "./experiences/experiences.css";
 const initialInput = (): Input => ({
   question: "",
   mode: "explore",
@@ -57,7 +60,7 @@ const initialInput = (): Input => ({
   options: ["", ""],
   targetDate: todayLocal(),
   timezone: detectTimezone(),
-  engines: [...ENGINE_IDS],
+  engines: [...CORE_ENGINE_IDS],
   birthday: "",
   reversals: true,
   everydayOnly: false,
@@ -717,6 +720,9 @@ export default function Zhongbu() {
                         onRevealEngine={() => reveal(r.engine)}
                         motionPaused={motionPaused}
                         journey={active}
+                        onExperienceChange={(next) =>
+                          progress((current) => updateExperience(current, next))
+                        }
                         onPickSlot={(slot) =>
                           progress((current) => pickTarot(current, slot))
                         }
@@ -730,6 +736,7 @@ export default function Zhongbu() {
                         }
                       />
                       {r.status === "ok" &&
+                        isCoreEngine(r.engine) &&
                         isEngineRevealed(active, r.engine) && (
                           <AiPanel
                             engine={r.engine}
@@ -1008,11 +1015,15 @@ export default function Zhongbu() {
                     onClick={() =>
                       update(
                         "engines",
-                        input.engines.length === 5 ? [] : [...ENGINE_IDS],
+                        input.engines.length === ENGINE_IDS.length
+                          ? []
+                          : [...ENGINE_IDS],
                       )
                     }
                   >
-                    {input.engines.length === 5 ? "取消全选" : "全选"}
+                    {input.engines.length === ENGINE_IDS.length
+                      ? "取消全选"
+                      : "全选"}
                   </button>
                 </div>
                 <div className="engine-picker">
@@ -1086,7 +1097,7 @@ export default function Zhongbu() {
               </form>
               <aside className="side-notes">
                 <div className="perspectives-card">
-                  <span className="section-kicker">五种意象 · 一场心游</span>
+                  <span className="section-kicker">十种意象 · 一场心游</span>
                   <div className="symbol-composition" aria-hidden="true">
                     <EngineAccent engine="tarot" />
                     <EngineAccent engine="meihua" />
@@ -1099,7 +1110,7 @@ export default function Zhongbu() {
                   </h2>
                   <p>塔罗看见处境，卦象展开变化，数字与符文带来另一种提醒。</p>
                   <p>可以偏爱一家，也可以只认同其中一句。不需要服从多数。</p>
-                  <div className="aside-footer">五套体系 / 各自成篇</div>
+                  <div className="aside-footer">十个篇章 / 各自成篇</div>
                 </div>
               </aside>
             </div>

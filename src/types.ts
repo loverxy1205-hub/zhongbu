@@ -1,4 +1,13 @@
-export type EngineId = "tarot" | "iching" | "meihua" | "numerology" | "runes";
+export type CoreEngineId =
+  "tarot" | "iching" | "meihua" | "numerology" | "runes";
+export type ExperienceId = "geomancy" | "coffee" | "ifa" | "jiaobei" | "oracle";
+export type EngineId = CoreEngineId | ExperienceId;
+export type ExperienceState =
+  | import("./experiences/geomancy").GeomancyState
+  | import("./experiences/coffee").CoffeeState
+  | import("./experiences/ifa").IfaState
+  | import("./experiences/jiaobei").JiaobeiState
+  | import("./experiences/oracle").OracleState;
 export type SingleRevealEngine = "iching" | "meihua" | "numerology";
 export type Theme =
   "推进" | "准备" | "审慎" | "休整" | "沟通" | "边界" | "变化" | "等待";
@@ -99,7 +108,9 @@ export type NumberMatrixRaw = {
   cells: { digit: MatrixDigit; count: number }[];
   trace: string[];
 };
-export type Raw = TarotRaw | RuneRaw | IChingRaw | MeihuaRaw | NumberRaw | NumberMatrixRaw;
+export type LegacyRaw =
+  TarotRaw | RuneRaw | IChingRaw | MeihuaRaw | NumberRaw | NumberMatrixRaw;
+export type Raw = LegacyRaw | ExperienceState;
 export interface Paragraph {
   label: string;
   text: string;
@@ -126,6 +137,8 @@ export interface EngineResult {
   error?: string;
   raw?: Raw;
   interpretation?: Interpretation;
+  /** Coffee observation versions keep their original interpretation and versions. */
+  observationInterpretations?: { id: number; interpretation: Interpretation; versions: Reading["versions"] }[];
 }
 export interface Reading {
   readingId: string;

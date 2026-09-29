@@ -1,6 +1,6 @@
 # 来源、版权与校订
 
-知识库版本 `2026.09.29-2`，应用 v1.6。源码 MIT；古籍原文公版；电子整理、字体和依赖保留各自许可，详见下表。所有中文基础释义、白话、主题标签、位置解释、场景反思均为本站自行整理，不是引自现代商业解读的逐字翻译。
+知识库版本 `2026.09.30-3`，应用、规则和模板为2.0.0。源码 MIT；古籍原文公版；电子整理、字体和依赖保留各自许可，详见下表。所有中文基础释义、白话、主题标签、位置解释、场景反思均为本站自行整理，不是引自现代商业解读的逐字翻译。十个篇章的符号与资料覆盖不同，不能将图式完整称为传统解释语料完整。
 
 | 数据／资源                | 来源                                                                                                                     | 本地位置与使用说明                                                                                                                                                                                                                                                                                                                                         |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -13,6 +13,21 @@
 | 数字命理                  | 本站现代规则 v1                                                                                                          | 公式完全公开；1–9 含义为本站整理，无统一古代规则主张。                                                                                                                                                                                                                                                                                                     |
 | 生日数字九宫格            | 本站生日数字九宫格 v1（用户选择的原始生日数字版）                                                                        | `src/data/numbers.ts` 的 `MATRIX_NUMBERS`，忽略0、保留重复、不加四工作数；1/4/7、2/5/8、3/6/9 布局与公式见 ALGORITHMS.md。毕达哥拉斯式为现代玩法名称，不声称来自毕达哥拉斯本人著作。中文文案原创；不将次数或空格解释为能力、健康、智商或财富评分。旧个人日数据保留用于历史兼容。                                                                           |
 
+## 2.0新增篇章来源
+
+| 篇章／材料          | 核对来源                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 本站使用范围                                                                                                                                                                                 |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 地占16图与基本盾图  | Robert Turner 1655英译《Of Geomancy》，传统归于Agrippa；[Princeton转录](https://swh.princeton.edu/~ezb/geomancy/agrippa.html)及其图式／盾图插图                                                                                                                                                                                                                                                                                                                             | 核对16个名称和上下行编码、母女与推演关系、盾图左右位置；旧文本公版，不复制现代商业释义或网页插图。中文关系解释与沙盘SVG原创，详见[GEOMANCY](GEOMANCY.md)。                                   |
+| 土耳其咖啡文化      | [UNESCO决定8.COM 8.28](https://ich.unesco.org/en/decisions/8.COM/8.28)、[GoTürkiye咖啡文化介绍](https://goturkiye.com/blog/turkish-coffee-culture)                                                                                                                                                                                                                                                                                                                          | 支持饮用、翻杯及观渣文化背景，不证明预测有效或20条词典的传统权威性。纹理、杯具及20条「本站象征提示」均原创，详见[COFFEE](COFFEE.md)。                                                        |
+| Ifá范围与口传语料   | [UNESCO Ifá条目00146](https://ich.unesco.org/en/RL/ifa-divination-system-00146)、[同机构保护项目00036](https://ich.unesco.org/en/projects/safeguarding-of-the-ifa-divination-system-00036)                                                                                                                                                                                                                                                                                  | 说明Odù与受训解释者、口传诗节的角色。条目网页受访问挑战时以同机构保护项目交叉核对；不从一般介绍推定具体图式朝向。                                                                            |
+| Ifá图式、朝向及器具 | William Bascom, _Ifa Divination_（1969），表1、图2及相关页；[出版社页](https://iupress.org/9780253206381/ifa-divination/)。Peter Tubi（2020）_Anthropology of Ifa_，图2；[论文](https://www.researchgate.net/publication/361164673_ANTHROPOLOGY_OF_IFA_A_STUDY_OF_TRADITIONAL_EPISTEMOLOGY_ETHICS_AND_WISDOM)。[Duke占链馆藏](https://sacredart.caaar.duke.edu/artifacts/pair-of-nigerian-yoruba-ifa-divination-chains-opele-1-green-yellow-beads-and-2-metal-chain-links/) | 核对16基础图式、凹面单划／凸面双划、操作者右列优先与上下顺序；依据事实制作原创连接链SVG，不复制受保护书图。页码、查阅版本和明确的orientation convention见[IFA](IFA.md)。                     |
+| 掷筊朝上面判别      | [桃园在地化课程／长祥宫「筊杯」](https://tlc.tyc.edu.tw/temples/changxiang-palace/)                                                                                                                                                                                                                                                                                                                                                                                         | 一平一凸圣、两平笑、两凸阴；站内公平双面数字假设与固定三次全圣为公开工程约定，不代表所有庙宇规则，不复制照片。                                                                               |
+| 灼甲流程与案例      | Smithsonian [Making Sense of the Future教案](https://asia-archive.si.edu/learn/for-educators/teaching-china-with-the-smithsonian/lesson-plans/making-sense-of-the-future-the-oracle-bone-and-shang-dynasty-divination/)、[馆藏S2012.9.445教育页](https://asia-archive.si.edu/learn/for-educators/teaching-china-with-the-smithsonian/explore-by-object/inscribed-tortoise-shell-oracle-bone/)                                                                               | 实际核对同馆官方archive页，中文简述雨、狩猎二十鹿的记录和独立教案中的问辞／判断／验辞结构；不复制文物图片或现代整段译文，不将古例当本次裂纹的判词。详见[JIAOBEI-ORACLE](JIAOBEI-ORACLE.md)。 |
+
+Ifá的 `signatureCatalog` 覆盖256种有序签名，但 `interpretationCorpus` 为**0条传统文本**。组合名称未充分核实则显示签名ID；中性反思来自独立的本站原创模板，不冒充Yorùbá诗节、占辞或宗教咨询。用户提供的[Smithsonian贝宁Fa介绍](https://festival.si.edu/blog/introduction-to-fa-divination-of-benin)属于贝宁Fa背景，不能未经区分代表Yorùbá所有流派，也未用于替代本次专门朝向核验。
+
+以上材料供开发核对和用户主动查看，运行时不抓取网页。新增五篇不调用DeepSeek补全传统内容。咖啡照片输入及需求附件8.2的另一条龟甲／龟壳路线尚未实现；当前虚拟纹理、链片、筊杯和甲片均为代码生成的原创SVG／CSS，无外部图像或生成式美术依赖。
+
 ## 原文处理和核验记录
 
 1. 开发阶段交叉查看过 `bollwarm/ZHOUYI`、`muyen/decoding-iching` 的文本和 `leechhui/zhouyi` 的编码；发现前两者的乾九二使用了“見龍再田”。没有采用该上游文本作为交付原文。
@@ -24,6 +39,8 @@
 
 ## 版本更新
 
+v2.0.0加入地占、咖啡、Ifá、掷筊和灼甲五个可选本地篇章，原五套保持默认选择。每个新篇章使用独立状态机和来源说明，保存冻结参数与解释版本。咖啡完成的各观察版本缓存原解释，灼甲的事后事实只追加、不反写旧解释。动作、图式与历史背景有来源不意味着任意新结果已有传统解读依据；缺失之处明确保留。
+
 v1.6.1恢复顶部已选塔罗大图，牌池流动星云／星轨为本站CSS装饰。牌槽位置固定、装饰不拦截输入，暂停或减少动态后静止；未增加远程图片或生成式美术资源。
 
 v1.6 的原位塔罗牌面、乾隆通宝阳面／无字阴面双面铜钱和九数轮盘继续采用本站原创SVG／CSS。钱背为空白是用户指定的游戏美术约定，不声称历史钱币背面均无字；腾空、落地回弹及落梅／转盘均只揭示冻结结果，无新增随机或远程资源。
@@ -34,7 +51,7 @@ v1.4 的转铜钱、落梅、数字跳动及岩石撬开也是本站SVG／CSS交
 
 v1.5 的78张牌背、六轮铜钱与逐爻图、布袋摸石、生日数字九宫格和分体系篇章继续使用本站原创 SVG／CSS／HTML，无新增商业卡面或远程图片。塔罗整副牌在提交时冻结，实际选择的槽位决定三张结果；其他揭晓装饰不重算。九宫格算法、生日独立同意存储与旧记录兼容详见 [算法约定](ALGORITHMS.md)。
 
-接口和部署依据：[DeepSeek 官方调用文档](https://api-docs.deepseek.com/guides/harness)、[Chat Completions API](https://api-docs.deepseek.com/api/create-chat-completion/)、[Cloudflare Workers Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)、[Workers Rate Limiting](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)。运行时只有用户显式生成 AI 才调用 DeepSeek；用户主动提交的反馈另经代理写入私有数据库，不调用模型。知识数据本身仍全部打包。
+接口和部署依据：[DeepSeek 官方调用文档](https://api-docs.deepseek.com/guides/harness)、[Chat Completions API](https://api-docs.deepseek.com/api/create-chat-completion/)、[Cloudflare Workers Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)、[Workers Rate Limiting](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)。运行时只有用户针对原五套显式生成 AI 才调用 DeepSeek；新增五篇无模型入口。用户主动提交的反馈可关联十个体系，另经代理写入私有数据库，不调用模型。知识数据本身仍全部打包。
 
 v1.5 服务实现参考 [Pages Functions bindings／Service binding](https://developers.cloudflare.com/pages/functions/bindings/)、[SQLite Durable Object 事务存储](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/) 和 [D1 数据库](https://developers.cloudflare.com/d1/)（2026-09-29核验）。它们分别用于同源API网关、滚动窗口与24小时防刷状态、主动反馈的私有存储。网站自定的反馈保留约90天、HMAC出口IP分组及60秒超过60次封禁规则不是这些平台提供的预测或身份认证能力，也不能保证中国所有网络可达。详细范围和限制见 [Worker说明](../worker/README.md)。
 

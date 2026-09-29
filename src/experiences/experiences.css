@@ -1,0 +1,91 @@
+.engine-geomancy {
+  --engine-ink: #604a2c;
+  --engine-accent: #a57b40;
+  background: #faf3e5;
+}
+.engine-coffee {
+  --engine-ink: #563321;
+  --engine-accent: #91613c;
+  background: #fcf4e9;
+}
+.engine-ifa {
+  --engine-ink: #345042;
+  --engine-accent: #a77e38;
+  background: #f0f6ed;
+}
+.engine-jiaobei {
+  --engine-ink: #713c2d;
+  --engine-accent: #b66843;
+  background: #fff6eb;
+}
+.engine-oracle {
+  --engine-ink: #654b2d;
+  --engine-accent: #b2915e;
+  background: #f8f0df;
+}
+.picker-geomancy .picker-icon {
+  color: #96703a;
+}
+.picker-coffee .picker-icon {
+  color: #815033;
+}
+.picker-ifa .picker-icon {
+  color: #45735b;
+}
+.picker-jiaobei .picker-icon {
+  color: #a14d35;
+}
+.picker-oracle .picker-icon {
+  color: #97763e;
+}
+.new-experience-reading {
+  padding: 24px 18px;
+  color: #40362d;
+}
+.new-experience-reading .interpretation-block {
+  border-top: 1px solid #b9a58445;
+  padding: 12px 0;
+}
+.new-experience-reading h4 {
+  color: #594d3a;
+}
+.new-experience-reading p {
+  overflow-wrap: anywhere;
+}
+.engine-meditation > .engine-accent {
+  width: 120px;
+  height: 120px;
+  animation: experience-breathe 2.8s ease-in-out infinite alternate;
+}
+.experience-info-card {
+  padding: 18px;
+  border: 1px solid #d4c8b5;
+  border-radius: 12px;
+  background: #fffaf0;
+  margin: 12px 0;
+}
+.experience-info-card a {
+  color: #634b76;
+}
+.experience-info-card small {
+  display: block;
+  color: #6e655b;
+}
+@keyframes experience-breathe {
+  from {
+    transform: translateY(-5px);
+    opacity: 0.55;
+  }
+  to {
+    transform: translateY(5px);
+    opacity: 1;
+  }
+}
+.motion-paused .engine-meditation > .engine-accent {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .engine-meditation > .engine-accent {
+    animation: none;
+  }
+}

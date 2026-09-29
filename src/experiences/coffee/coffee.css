@@ -1,0 +1,423 @@
+.cf-experience {
+  margin: 22px 0 8px;
+  padding: 24px;
+  border: 1px solid #d3b88e;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 0 0, #ebce984d, transparent 46%), #fff7e9;
+  color: #463323;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+.cf-experience * {
+  box-sizing: border-box;
+}
+.cf-experience .cf-heading {
+  text-align: center;
+}
+.cf-experience .cf-heading > span {
+  font:
+    0.64rem Georgia,
+    serif;
+  letter-spacing: 0.19em;
+  color: #765436;
+}
+.cf-experience .cf-heading h4 {
+  font:
+    500 1.35rem Georgia,
+    "Songti SC",
+    SimSun,
+    serif;
+  color: #593a23;
+  margin: 12px 0;
+}
+.cf-experience p {
+  line-height: 1.8;
+  font-size: 0.88rem;
+  color: #5d4838;
+}
+.cf-experience .cf-heading p {
+  max-width: 640px;
+  margin: 0 auto 20px;
+}
+.cf-experience .cf-fine {
+  font-size: 0.74rem;
+  color: #705a45;
+  margin: 9px 0 0;
+}
+.cf-experience .cf-steps {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.cf-experience .cf-steps li {
+  margin: 0;
+  padding: 5px 8px;
+  border: 1px solid #dfcaac;
+  border-radius: 18px;
+  color: #75624e;
+  font-size: 0.68rem;
+}
+.cf-experience .cf-steps .cf-step-done {
+  background: #e8eede;
+  border-color: #a8b19a;
+  color: #465e4c;
+}
+.cf-experience .cf-steps [aria-current="step"] {
+  color: #fff7e5;
+  background: #725031;
+  border-color: #725031;
+}
+.cf-experience .cf-stage {
+  background: linear-gradient(145deg, #efdbc040, #f9ebd580);
+  border: 1px solid #e5ccaa;
+  border-radius: 14px;
+  padding: 15px;
+  overflow: hidden;
+}
+.cf-experience .cf-cup-view,
+.cf-experience .cf-covered-cup {
+  display: block;
+  width: 100%;
+  max-width: 680px;
+  height: auto;
+  margin: 0 auto;
+}
+.cf-experience .cf-turnable,
+.cf-experience .cf-drawing {
+  touch-action: none;
+}
+.cf-experience .cf-turnable {
+  cursor: grab;
+}
+.cf-experience .cf-turnable:active {
+  cursor: grabbing;
+}
+.cf-experience .cf-drawing {
+  cursor: crosshair;
+}
+.cf-experience .cf-handle-label {
+  fill: #624b33;
+  font:
+    13px "Microsoft YaHei",
+    sans-serif;
+}
+.cf-experience .cf-axis-label {
+  fill: #684f35;
+  font:
+    12px "Microsoft YaHei",
+    sans-serif;
+}
+.cf-experience .cf-region-guide {
+  fill: none;
+  stroke: #8f765749;
+  stroke-width: 1;
+  stroke-dasharray: 3 7;
+  pointer-events: none;
+}
+.cf-experience .cf-handle-seam {
+  pointer-events: none;
+}
+.cf-experience .cf-handle-seam line {
+  stroke: #397c6f;
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+  opacity: 0.5;
+}
+.cf-experience .cf-handle-seam text {
+  fill: #315e51;
+  font:
+    11px "Microsoft YaHei",
+    sans-serif;
+}
+.cf-experience .cf-saved-outline {
+  fill: #85bbad24;
+  stroke: #1f665a;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.cf-experience .cf-draft-outline {
+  fill: #46a8a036;
+  stroke: #176a67;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.cf-experience .cf-cup-inverted .cf-ceramic-cup,
+.cf-experience .cf-cup-settling .cf-ceramic-cup,
+.cf-experience .cf-cup-settled .cf-ceramic-cup {
+  transform: rotate(180deg);
+  transform-origin: 300px 225px;
+}
+.cf-experience .cf-cup-inverted .cf-ceramic-cup {
+  animation: cf-turn-over 0.8s ease-out both;
+}
+.cf-experience .cf-settling-dots {
+  animation: cf-settle 1.3s ease-out both;
+}
+.cf-experience .cf-turn-controls,
+.cf-experience .cf-actions {
+  text-align: center;
+}
+.cf-experience .cf-actions {
+  margin-top: 20px;
+}
+.cf-experience button,
+.cf-experience select {
+  min-height: 44px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  border: 1px solid #aa8c66;
+  border-radius: 8px;
+  color: #593d25;
+  background: #fff9ec;
+  padding: 9px 13px;
+}
+.cf-experience button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.cf-experience button:hover:not(:disabled) {
+  background: #ead7b2;
+  border-color: #7c5c37;
+}
+.cf-experience button:disabled {
+  opacity: 0.58;
+  cursor: default;
+}
+.cf-experience button[aria-pressed="true"] {
+  color: #fffaf0;
+  background: #476c64;
+  border-color: #476c64;
+}
+.cf-experience .cf-primary {
+  color: #fff8e9;
+  background: #775334;
+  border-color: #775334;
+}
+.cf-experience .cf-primary:hover:not(:disabled) {
+  color: #fff8e9;
+  background: #604027;
+}
+.cf-experience :is(button, input, select, textarea, summary, a):focus-visible {
+  outline: 3px solid #306f67;
+  outline-offset: 3px;
+}
+.cf-experience .cf-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.cf-experience .cf-view-tools {
+  border-top: 1px solid #dfc8a9;
+  padding-top: 15px;
+  text-align: center;
+}
+.cf-experience .cf-view-ranges {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 550px;
+  margin: 14px auto 0;
+}
+.cf-experience .cf-view-ranges label,
+.cf-experience .cf-box-controls label {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: #5d4733;
+}
+.cf-experience input[type="range"] {
+  width: 100%;
+  min-width: 40px;
+  accent-color: #3d756c;
+  height: 30px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+.cf-experience output {
+  min-width: 36px;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.cf-experience .cf-observer {
+  margin-top: 22px;
+}
+.cf-experience .cf-annotation-form {
+  padding: 20px;
+  border: 1px solid #9bb4a5;
+  border-radius: 12px;
+  background: #f3f4e9;
+}
+.cf-experience h5 {
+  font-size: 1rem;
+  color: #3a6559;
+  margin: 0;
+}
+.cf-experience .cf-box-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+}
+.cf-experience .cf-field {
+  display: block;
+  margin: 16px 0;
+  color: #4b5545;
+  font-size: 0.8rem;
+}
+.cf-experience .cf-field select,
+.cf-experience .cf-field textarea {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+}
+.cf-experience .cf-field textarea {
+  font: inherit;
+  color: #403e30;
+  background: #fffcf4;
+  padding: 10px;
+  border: 1px solid #9ca98f;
+  border-radius: 7px;
+  resize: vertical;
+}
+.cf-experience .cf-observations {
+  padding: 0;
+  margin: 20px 0 0;
+  list-style: none;
+}
+.cf-experience .cf-observations li {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+  margin: 10px 0;
+  padding: 15px;
+  background: #eceddf;
+  border: 1px solid #c3c6ac;
+  border-radius: 9px;
+  overflow-wrap: anywhere;
+}
+.cf-experience .cf-observations strong {
+  color: #375c50;
+  font-size: 0.88rem;
+}
+.cf-experience .cf-observations small {
+  display: block;
+  font-size: 0.72rem;
+  color: #5e6956;
+  margin-top: 4px;
+}
+.cf-experience .cf-observations p {
+  margin: 6px 0;
+}
+.cf-experience .cf-completed {
+  margin-top: 20px;
+  padding: 18px;
+  border-left: 3px solid #5d8072;
+  background: #edf0e2;
+  border-radius: 4px 12px 12px 4px;
+}
+.cf-experience .cf-completed > p:first-child {
+  margin-top: 0;
+  color: #355748;
+}
+.cf-experience .cf-completed label {
+  font-size: 0.78rem;
+}
+.cf-experience .cf-source-note {
+  border-top: 1px solid #dbc4a3;
+  margin-top: 22px;
+  padding-top: 15px;
+  font-size: 0.76rem;
+}
+.cf-experience .cf-source-note summary {
+  cursor: pointer;
+  color: #6d4a2e;
+}
+.cf-experience .cf-source-note p {
+  font-size: 0.76rem;
+}
+.cf-experience .cf-source-note a {
+  color: #26645b;
+}
+@keyframes cf-turn-over {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(180deg);
+  }
+}
+@keyframes cf-settle {
+  from {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.cf-experience.cf-paused *,
+.cf-experience.cf-paused *::before,
+.cf-experience.cf-paused *::after {
+  animation: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-experience *,
+  .cf-experience *::before,
+  .cf-experience *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@media (max-width: 600px) {
+  .cf-experience {
+    padding: 16px 12px;
+  }
+  .cf-experience .cf-heading h4 {
+    font-size: 1.15rem;
+  }
+  .cf-experience .cf-steps {
+    gap: 5px;
+  }
+  .cf-experience .cf-steps li {
+    font-size: 0.63rem;
+    padding: 4px 7px;
+  }
+  .cf-experience .cf-stage {
+    padding: 6px;
+  }
+  .cf-experience .cf-view-ranges,
+  .cf-experience .cf-box-controls {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .cf-experience .cf-view-ranges {
+    padding: 0 8px;
+  }
+  .cf-experience .cf-annotation-form {
+    padding: 15px 11px;
+  }
+  .cf-experience .cf-button-row {
+    gap: 8px;
+  }
+  .cf-experience button {
+    font-size: 0.74rem;
+    padding: 9px 11px;
+  }
+  .cf-experience .cf-view-tools .cf-fine {
+    padding: 0 8px 8px;
+  }
+}

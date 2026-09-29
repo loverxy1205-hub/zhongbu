@@ -1,6 +1,23 @@
 import { z } from "zod";
 import { aiRequestSchema, aiResponseSchema } from "../../shared/ai-contract";
-const engine = z.enum(["tarot", "iching", "meihua", "numerology", "runes"]);
+import {
+  experienceSchema,
+  isExperienceId,
+  isExperienceRaw,
+  interpretExperience,
+} from "../experiences";
+const engine = z.enum([
+  "tarot",
+  "iching",
+  "meihua",
+  "numerology",
+  "runes",
+  "geomancy",
+  "coffee",
+  "ifa",
+  "jiaobei",
+  "oracle",
+]);
 const position = z.enum(["现状", "阻力", "提示"]);
 const tarotId = z
   .string()
@@ -49,12 +66,16 @@ const input = z
       .optional(),
     targetDate: z.string(),
     timezone: z.string(),
-    engines: z.array(engine).min(1).max(5),
+    engines: z
+      .array(engine)
+      .min(1)
+      .max(10)
+      .refine((values) => new Set(values).size === values.length),
     reversals: z.boolean(),
     everydayOnly: z.boolean(),
   })
   .strict();
-const raw = z.discriminatedUnion("kind", [
+const legacyRaw = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("tarot"),
     cards: z
@@ -139,6 +160,7 @@ const raw = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
+const raw = z.union([legacyRaw, experienceSchema]);
 const interpretation = z.object({
   headline: z.string(),
   themes: z.array(theme),
@@ -154,10 +176,35 @@ const result = z.discriminatedUnion("status", [
   z
     .object({
       status: z.literal("pending"),
-      engine: z.literal("tarot"),
+      engine,
       methodVersion: z.string(),
+      raw: raw.optional(),
+      observationInterpretations: z
+        .array(
+          z
+            .object({
+              id: z.number().int().min(1).max(8),
+              interpretation,
+              versions: z.object({
+                app: z.string(),
+                knowledge: z.string(),
+                rules: z.string(),
+                templates: z.string(),
+                calendar: z.string(),
+                schema: z.literal(1),
+              }),
+            })
+            .strict(),
+        )
+        .max(8)
+        .optional(),
     })
-    .strict(),
+    .strict()
+    .refine((r) =>
+      r.engine === "tarot"
+        ? r.raw === undefined
+        : isExperienceId(r.engine) && r.raw?.kind === r.engine,
+    ),
   z
     .object({
       status: z.literal("ok"),
@@ -165,6 +212,25 @@ const result = z.discriminatedUnion("status", [
       methodVersion: z.string(),
       raw,
       interpretation,
+      observationInterpretations: z
+        .array(
+          z
+            .object({
+              id: z.number().int().min(1).max(8),
+              interpretation,
+              versions: z.object({
+                app: z.string(),
+                knowledge: z.string(),
+                rules: z.string(),
+                templates: z.string(),
+                calendar: z.string(),
+                schema: z.literal(1),
+              }),
+            })
+            .strict(),
+        )
+        .max(8)
+        .optional(),
     })
     .refine(
       (r) =>
@@ -185,7 +251,14 @@ export const savedSchema = z
       readingId: z.string().regex(/^zb-[0-9a-f]{32}$/),
       askedAt: z.iso.datetime(),
       input,
-      results: z.array(result).min(1).max(5),
+      results: z
+        .array(result)
+        .min(1)
+        .max(10)
+        .refine(
+          (values) =>
+            new Set(values.map((r) => r.engine)).size === values.length,
+        ),
       versions: z.object({
         app: z.string(),
         knowledge: z.string(),
@@ -244,6 +317,57 @@ export const savedSchema = z
     const tarot = saved.reading.results.find((r) => r.engine === "tarot");
     const issue = () =>
       ctx.addIssue({ code: "custom", message: "揭晓进度与冻结结果不一致" });
+    for (const r of saved.reading.results) {
+      if (r.status !== "unavailable" && r.raw?.kind === "coffee") {
+        const observations = r.raw.observations;
+        const cached = r.observationInterpretations || [];
+        if (
+          cached.length !== observations.length ||
+          observations.some(
+            (observation) =>
+              !cached.some((entry) => entry.id === observation.id),
+          )
+        )
+          issue();
+      }
+      if ("observationInterpretations" in r && r.observationInterpretations) {
+        if (
+          r.raw?.kind !== "coffee" ||
+          new Set(r.observationInterpretations.map((entry) => entry.id))
+            .size !== r.observationInterpretations.length
+        )
+          issue();
+        else {
+          const coffee = r.raw;
+          if (
+            r.observationInterpretations.some(
+              (entry) =>
+                !coffee.observations.some(
+                  (observation) => observation.id === entry.id,
+                ),
+            )
+          )
+            issue();
+          if (
+            r.status === "ok" &&
+            JSON.stringify(
+              r.observationInterpretations.find(
+                (entry) => entry.id === coffee.activeVersion,
+              )?.interpretation,
+            ) !== JSON.stringify(r.interpretation)
+          )
+            issue();
+        }
+      }
+      if (
+        r.status !== "unavailable" &&
+        r.raw &&
+        isExperienceRaw(r.raw) &&
+        (r.status === "ok") !==
+          !!interpretExperience(r.raw, saved.reading.input)
+      )
+        issue();
+    }
     if (saved.tarotDeck || saved.tarotPicked || tarot?.status === "pending") {
       if (!saved.tarotDeck || !saved.tarotPicked || !tarot) {
         issue();
