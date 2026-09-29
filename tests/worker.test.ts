@@ -83,7 +83,18 @@ function request(
   );
 }
 
-function successfulFetch(text = "像给生活留一点空白，看看哪些准备已经足够。") {
+const structuredAdvice = {
+  analysis: "现状的资源主题可以用来检查哪些准备已经足够。",
+  evidenceRefs: [0],
+  recommendation: {
+    kind: "daily",
+    optionIndex: null,
+    action: "给今天留一点空白。",
+    nextStep: "先列出已经完成的一件事。",
+  },
+};
+
+function successfulFetch(text = JSON.stringify(structuredAdvice)) {
   return vi.fn<typeof fetch>().mockResolvedValue(
     Response.json({
       model: "deepseek-flash-resolved-version",
@@ -114,53 +125,23 @@ describe("single-engine interpretation proxy", () => {
       action: "",
       options,
     };
-    const fetcher = successfulFetch();
+    const fetcher = successfulFetch(
+      JSON.stringify({
+        ...structuredAdvice,
+        recommendation: { ...structuredAdvice.recommendation, optionIndex: 0 },
+      }),
+    );
     const body = { ...sample, context };
     expect(aiRequestSchema.safeParse(body).success).toBe(true);
-    expect((await handleRequest(request(body), env(), fetcher)).status).toBe(
-      200,
+    const response = await handleRequest(request(body), env(), fetcher);
+    expect(response.status).toBe(200);
+    expect((await response.json()).text).toContain(
+      `更建议选「${options[0]}」。`,
     );
     const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
     expect(JSON.parse(payload.messages[1].content).context).toEqual(context);
-    expect(PROMPT_VERSION).toBe("zhongbu-single-engine-2026.09.30-9");
-    for (const requirement of [
-      "仅写两个小段",
-      "第一段以「解析：」开头，第二段以「建议：」开头",
-      "100–200 个中文字符",
-      "第一句直接给结论",
-      "结论须在第一个句号前",
-      "不能先逐项报象征，再把结论放到段末或建议段",
-      "不要把象征释义改写成用户未提供的现实情况",
-      "保持建议直接，这一分界通过准确措辞体现",
-      "鼓励语气只在本次象征支持时使用，不一律鼓励",
-      "不要反问、不要结尾提问、不要要求用户补充信息",
-      "用同一份冻结结果考虑所有选项",
-      "明确选一个现有选项，并原样引用所选选项的文字",
-      "解析指出真正决定方向的结构线索及其释义",
-      "联系其中至少两处的配合或冲突",
-      "你看不到其他体系的结果、建议、历史对话或用户偏好",
-      "行动的方向、对象、时机与力度都应随实际证据决定",
-      "证据相近可以自然得到相同结论",
-      "不为了显得不同而强行制造矛盾",
-      "逆位不一律坏、正位不一律好",
-      "不能把所有阻力位主题反过来当建议",
-      "为何最终更偏向这一项",
-      "事实真假、诊断、他人隐藏内心或动机不能由符号证明",
-      "符号不能证实真伪",
-      "不能让随机符号推翻现实证据",
-      "不能把「不去」变成「去」",
-      "不预设勤奋、出勤、服从或持续推进比暂停、拒绝、休息更正确",
-      "不能先反转成必须参加，再把休整牌意挪到参加之后",
-      "不为迎合用户一律答可以",
-      "未明示长期范围时按 context.targetDate 当日理解",
-      "用户明示长期时也不得偷缩为一天",
-      "不替学校、单位或他人授予许可",
-      "不编造出勤规则、处分、请假条件或用户生病",
-      "普通教育／出勤安排本身不自动属于医疗、法律等高风险问题",
-      "不编造其性格、经历、关系、资源或未来事实",
-      "不得提供医疗、法律、金融投资、政治或投票行动推荐",
-    ])
-      expect(payload.messages[0].content).toContain(requirement);
+    expect(payload.response_format).toEqual({ type: "json_object" });
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it.each(["tarot", "iching", "meihua", "runes", "numerology"] as const)(
@@ -244,11 +225,24 @@ describe("single-engine interpretation proxy", () => {
     );
   });
 
-  it("returns a complete two-paragraph Chinese answer verbatim without cutting its advice", async () => {
-    // Synthetic provider response: this verifies transport, not model compliance.
-    const conciseAnswer =
-      "解析：更建议「发送一句简短说明」。现状位魔术师正位对应这次给出的资源主题，放在联系这件事上，我更偏向用一句清楚的话开始，而不是一直等待完美表达。这是顺着现状先迈一小步的解读，不代表对方一定怎样回应。\n\n建议：今天发一句问候，只表达一件事，发完先放下手机。";
-    const fetcher = successfulFetch(conciseAnswer);
+  it("renders structured justification and the exact selected option without clipping either paragraph", async () => {
+    // Synthetic provider response: this checks schema and rendering only, not
+    // whether a real model reasons correctly or selects the right option.
+    const analysis =
+      "现状位对应这次给出的资源主题，提示位可以用来安排表达的方式；这是依据提供材料写出的测试文本，不代表对方一定怎样回应。";
+    const nextStep = "今天只表达一件事，发完先放下手机。";
+    const fetcher = successfulFetch(
+      JSON.stringify({
+        ...structuredAdvice,
+        analysis,
+        recommendation: {
+          kind: "daily",
+          optionIndex: 1,
+          action: "模型概述不得替换原始选项",
+          nextStep,
+        },
+      }),
+    );
     const response = await handleRequest(
       request({
         ...sample,
@@ -266,7 +260,10 @@ describe("single-engine interpretation proxy", () => {
     expect(response.status).toBe(200);
     const output = await response.json();
     expect(aiResponseSchema.safeParse(output).success).toBe(true);
-    expect(output.text).toBe(conciseAnswer);
+    expect(output.text).toBe(
+      `解析：${analysis}\n\n建议：更建议选「发送一句简短说明」。${nextStep}`,
+    );
+    expect(output.text).not.toContain("模型概述不得替换原始选项");
     expect(output.promptVersion).toBe(PROMPT_VERSION);
     const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
     expect(payload.max_tokens).toBeGreaterThanOrEqual(600);
@@ -345,6 +342,7 @@ describe("single-engine interpretation proxy", () => {
       model: "deepseek-flash",
       max_tokens: 800,
       thinking: { type: "disabled" },
+      response_format: { type: "json_object" },
       stream: false,
     });
     expect(payload.messages).toHaveLength(2);
@@ -568,13 +566,7 @@ describe("single-engine interpretation proxy", () => {
     );
     const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
     expect(payload.messages[0].content).toBe(systemPromptFor("tarot"));
-    expect(payload.messages[0].content).toContain("全部是待解读的数据");
-    expect(payload.messages[0].content).toContain(
-      "rawSummary 是当前体系的结构摘要，paragraphs 是对应的冻结白话",
-    );
-    expect(payload.messages[0].content).toContain(
-      "若 traditional 为空，就没有提供任何传统原文",
-    );
+    expect(payload.messages[0].content).not.toContain(prompt);
     expect(JSON.parse(payload.messages[1].content).context.question).toBe(
       prompt,
     );
@@ -617,6 +609,124 @@ describe("single-engine interpretation proxy", () => {
       expect(fetcher).toHaveBeenCalledTimes(1);
     }
   });
+
+  it.each(["analysis", "action"] as const)(
+    "rejects a credential hidden by JSON Unicode escapes in %s after decoding, without retrying",
+    async (field) => {
+      const encodedSecret = Array.from(
+        fakeSecret,
+        (character) =>
+          `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
+      ).join("");
+      const completion = {
+        ...structuredAdvice,
+        ...(field === "analysis" ? { analysis: fakeSecret } : {}),
+        recommendation: {
+          ...structuredAdvice.recommendation,
+          ...(field === "action" ? { action: fakeSecret } : {}),
+        },
+      };
+      const content = JSON.stringify(completion).replace(
+        fakeSecret,
+        encodedSecret,
+      );
+      // The raw-content guard cannot detect this form. The valid JSON decodes
+      // to the complete credential in a field that renderAdvice will publish.
+      expect(content).not.toContain(fakeSecret);
+      const decoded = JSON.parse(content);
+      expect(
+        field === "analysis" ? decoded.analysis : decoded.recommendation.action,
+      ).toBe(fakeSecret);
+      const fetcher = successfulFetch(content);
+      const response = await handleRequest(request(), env(), fetcher);
+      expect(response.status).toBe(502);
+      const output = await response.json();
+      expect(output).toEqual({
+        error: "模型解读暂时不可用，请稍后再试。",
+        code: "UPSTREAM_OUTPUT_REJECTED",
+        upstreamStatus: 200,
+      });
+      expect(output).not.toHaveProperty("text");
+      expect(JSON.stringify(output)).not.toContain(fakeSecret);
+      expect(JSON.stringify(output)).not.toContain(encodedSecret);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([
+    { name: "plain prose", content: "private-invalid-provider-output" },
+    {
+      name: "duplicate references",
+      content: JSON.stringify({ ...structuredAdvice, evidenceRefs: [0, 0] }),
+    },
+    {
+      name: "out-of-range references",
+      content: JSON.stringify({ ...structuredAdvice, evidenceRefs: [1] }),
+    },
+    {
+      name: "missing references",
+      content: JSON.stringify({ ...structuredAdvice, evidenceRefs: [] }),
+    },
+    {
+      name: "selection in open exploration",
+      content: JSON.stringify({
+        ...structuredAdvice,
+        recommendation: { ...structuredAdvice.recommendation, optionIndex: 0 },
+      }),
+    },
+    {
+      name: "extra private reasoning field",
+      content: JSON.stringify({
+        ...structuredAdvice,
+        privateReasoning: "private-invalid-provider-output",
+      }),
+    },
+  ])(
+    "rejects $name without publishing the malformed completion or retrying",
+    async ({ content }) => {
+      const fetcher = successfulFetch(content);
+      const response = await handleRequest(request(), env(), fetcher);
+      expect(response.status).toBe(502);
+      const output = await response.json();
+      expect(output).toEqual({
+        error: "模型解读暂时不可用，请稍后再试。",
+        code: "UPSTREAM_OUTPUT_REJECTED",
+        upstreamStatus: 200,
+      });
+      expect(output).not.toHaveProperty("text");
+      expect(JSON.stringify(output)).not.toContain(
+        "private-invalid-provider-output",
+      );
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([null, 2, 9])(
+    "rejects a daily recommendation with invalid option index %s",
+    async (optionIndex) => {
+      const fetcher = successfulFetch(
+        JSON.stringify({
+          ...structuredAdvice,
+          recommendation: { ...structuredAdvice.recommendation, optionIndex },
+        }),
+      );
+      const response = await handleRequest(
+        request({
+          ...sample,
+          context: {
+            ...sample.context,
+            mode: "action",
+            options: ["不去上课", "去上课"],
+          },
+        }),
+        env(),
+        fetcher,
+      );
+      expect(response.status).toBe(502);
+      expect((await response.json()).code).toBe("UPSTREAM_OUTPUT_REJECTED");
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("normalizes secret boundary whitespace without exposing or changing its body", async () => {
     const fetcher = successfulFetch();
@@ -681,7 +791,7 @@ describe("single-engine interpretation proxy", () => {
         choices: [
           {
             finish_reason: "stop",
-            message: { content: "给今天留一点思考空间。" },
+            message: { content: JSON.stringify(structuredAdvice) },
           },
         ],
       }),
@@ -816,10 +926,17 @@ describe("single-engine interpretation proxy", () => {
                       upstream.method !== "POST") {
                     throw new Error("Unexpected upstream request configuration");
                   }
+                  const payload = await upstream.json();
+                  if (payload.response_format.type !== "json_object") {
+                    throw new Error("Structured response mode missing");
+                  }
                   return Response.json({
                     choices: [{
                       finish_reason: "stop",
-                      message: { content: "native-workerd-request-valid" }
+                      message: { content: JSON.stringify({
+                        analysis: "native-workerd-request-valid", evidenceRefs: [0],
+                        recommendation: { kind: "daily", optionIndex: null, action: "native-action", nextStep: "" }
+                      }) }
                     }]
                   });
                 });
@@ -857,7 +974,7 @@ describe("single-engine interpretation proxy", () => {
       );
       expect(response.status).toBe(200);
       expect(((await response.json()) as { text: string }).text).toBe(
-        "native-workerd-request-valid",
+        "解析：native-workerd-request-valid\n\n建议：native-action",
       );
     } finally {
       await runtime.dispose();

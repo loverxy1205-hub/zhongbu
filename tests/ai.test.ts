@@ -341,7 +341,7 @@ describe("single-engine AI request privacy", () => {
     expect(JSON.stringify(request)).not.toContain("PRIVATE_DORMANT_OPTION");
   });
 
-  it.each(["我明天可以翘课嘛？", "我可以不去上学吗？"])(
+  it.each(["明天可以翘课吗？", "我明天可以翘课嘛？", "我可以不去上学吗？"])(
     "preserves the original exploration question and target day without inferring an attendance action: %s",
     (question) => {
       const source = reading({
